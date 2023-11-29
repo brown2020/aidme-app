@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    height: calc(var(--vh, 1vh) * 100);
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    background-color: #000000;
+    color: #ffffff;
+  }
+}
+
+@layer components {
+  .h-container {
+    height: calc(100vh - 4rem);
+    overscroll-behavior-y: contain;
+  }
+}
