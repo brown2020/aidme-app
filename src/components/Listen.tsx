@@ -85,7 +85,6 @@ export default function Listen() {
       console.log("Starting recognition");
       setTimeout(() => {
         recognitionRef.current?.start();
-        setIsListening(true);
       }, 100);
       setIsListening(true);
     } else if (!shouldListen && isListening) {
