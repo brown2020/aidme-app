@@ -25,6 +25,7 @@ export default function Instructions({}: Props) {
         }`}
         onClick={() => {
           setShouldListen(true);
+          console.log("shouldListen", shouldListen);
           router.push("/");
         }}
       >

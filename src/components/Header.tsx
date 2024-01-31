@@ -4,12 +4,31 @@ import { HelpCircleIcon, MicIcon } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import logo from "../assets/aidme.png";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 type Props = {};
 export default function Header({}: Props) {
   const { shouldListen, setShouldListen } = useAppStore();
   const router = useRouter();
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (shouldListen) {
+      timeoutRef.current = setTimeout(() => {
+        setShouldListen(false);
+      }, 30 * 60 * 1000); // 1 hour
+    } else {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    }
+
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [shouldListen, setShouldListen]);
 
   const handleRefresh = () => {
     // Check if the app is running in a React Native WebView
