@@ -10,6 +10,10 @@ Aid.me is a modern web application built with Next.js 14, React, Zustand, and Ta
 - **Loading Spinner:** Provides visual feedback during speech processing using `react-spinners`.
 - **Easy Setup:** Get started with a few commands, thanks to Next.js's development environment.
 
+## Important Note
+
+To use the speech recognition feature, **you must allow microphone permissions** when prompted by your browser or device. This is essential for the app to capture and transcribe spoken words effectively.
+
 ## React Native Version
 
 Aid.me is also available as a React Native app on the [Apple App Store](https://apps.apple.com/us/app/aid-me-hearing/id6473455500) under the name **Aid Hearing, captions for life**. This app continuously transcribes the speech around you, acting like closed captioning for your life. If you have trouble hearing, just put your phone or iPad on the table, and let Aid.me listen and transcribe for you.
