@@ -1,6 +1,5 @@
 import Instructions from "@/components/Instructions";
 
-type Props = {};
-export default function About({}: Props) {
+export default function About() {
   return <Instructions />;
 }

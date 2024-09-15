@@ -1,7 +1,6 @@
 import PrivacyPage from "@/components/PrivacyPage";
 
-type Props = {};
-export default function Privacy({}: Props) {
+export default function Privacy() {
   return (
     <PrivacyPage
       companyName={"Ignite Channel"}

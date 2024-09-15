@@ -1,13 +1,23 @@
 import { useState, useEffect } from "react";
 
+// Create a type alias for the global SpeechRecognition constructor
+type SpeechRecognitionConstructor = new () => SpeechRecognition;
+
+// Ensure recognitionInstance is typed correctly
 let recognitionInstance: SpeechRecognition | null = null;
 
 export const getSpeechRecognitionInstance = (
   language = "en-US"
 ): SpeechRecognition | null => {
+  // Explicitly type SpeechRecognition as SpeechRecognitionConstructor or undefined
+  const SpeechRecognition = (window.SpeechRecognition ||
+    (
+      window as typeof window & {
+        webkitSpeechRecognition?: SpeechRecognitionConstructor;
+      }
+    ).webkitSpeechRecognition) as SpeechRecognitionConstructor | undefined;
+
   if (!recognitionInstance) {
-    const SpeechRecognition =
-      window.SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       console.error("Speech recognition not supported in this browser.");
       return null;
@@ -53,11 +63,10 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
     if (shouldListen) {
       try {
         recognition.start();
-      } catch (error: any) {
-        console.log(
-          "Restarting recognition:",
-          error?.message || "unknown issue"
-        );
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "unknown issue";
+        console.log("Restarting recognition:", message);
       }
     }
   };
@@ -81,8 +90,10 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
 
       try {
         recognition.start();
-      } catch (error: any) {
-        console.log("Starting recognition", error?.message);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "unknown issue";
+        console.log("Starting recognition", message);
       }
     } else {
       console.log("Stopping recognition");
@@ -90,8 +101,10 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
 
       try {
         recognition.stop();
-      } catch (error: any) {
-        console.log("Stopping recognition", error?.message);
+      } catch (error: unknown) {
+        const message =
+          error instanceof Error ? error.message : "unknown issue";
+        console.log("Stopping recognition", message);
       }
     }
 

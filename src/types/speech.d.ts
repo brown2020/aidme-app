@@ -11,7 +11,7 @@ interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
 }
 
-declare var SpeechRecognition: {
+declare const SpeechRecognition: {
   prototype: SpeechRecognition;
   new (): SpeechRecognition;
 };
@@ -23,9 +23,24 @@ interface SpeechRecognition extends EventTarget {
   onresult: (event: SpeechRecognitionEvent) => void;
   onend: () => void;
   onstart: () => void;
-  onerror: (any) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
   onspeechend: () => void;
   onsoundend: () => void;
   start(): void;
   stop(): void;
 }
+
+interface SpeechRecognitionErrorEvent extends Event {
+  error: SpeechRecognitionErrorCode;
+  message: string;
+}
+
+type SpeechRecognitionErrorCode =
+  | "no-speech"
+  | "aborted"
+  | "audio-capture"
+  | "network"
+  | "not-allowed"
+  | "service-not-allowed"
+  | "bad-grammar"
+  | "language-not-supported";

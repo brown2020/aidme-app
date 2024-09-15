@@ -3,8 +3,7 @@ import { useAppStore } from "@/zustand/useAppStore";
 import { MicIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-type Props = {};
-export default function Instructions({}: Props) {
+export default function Instructions() {
   const { shouldListen, setShouldListen } = useAppStore();
   const router = useRouter();
 

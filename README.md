@@ -1,36 +1,92 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Aid.me
+
+Aid.me is a modern web application built with Next.js 14, React, Zustand, and Tailwind CSS. The app leverages the Speech Recognition API to provide real-time transcription of spoken words, making it ideal for accessibility purposes, note-taking, or voice-driven interfaces.
+
+## Features
+
+- **Real-Time Speech Recognition:** Utilizes the Web Speech API for real-time speech-to-text conversion.
+- **Interactive UI:** Built with React and Tailwind CSS for a responsive and interactive user interface.
+- **State Management:** Uses Zustand for lightweight and flexible state management.
+- **Loading Spinner:** Provides visual feedback during speech processing using `react-spinners`.
+- **Easy Setup:** Get started with a few commands, thanks to Next.js's development environment.
+
+## React Native Version
+
+Aid.me is also available as a React Native app on the [Apple App Store](https://apps.apple.com/us/app/aid-me-hearing/id6473455500) under the name **Aid Hearing, captions for life**. This app continuously transcribes the speech around you, acting like closed captioning for your life. If you have trouble hearing, just put your phone or iPad on the table, and let Aid.me listen and transcribe for you.
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+Ensure you have the following installed:
+
+- [Node.js](https://nodejs.org/) (v16 or later)
+- [npm](https://www.npmjs.com/) (v8 or later)
+
+### Installation
+
+Clone the repository and install the dependencies:
+
+```bash
+git clone https://github.com/brown2020/aidme-app.git
+cd aidme-app
+npm install
+```
+
+### Running the Development Server
+
+Start the development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Building for Production
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+To create a production build, run:
 
-## Learn More
+```bash
+npm run build
+```
 
-To learn more about Next.js, take a look at the following resources:
+This will generate an optimized build in the `.next` folder.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Starting the Production Server
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+After building for production, you can start the server with:
 
-## Deploy on Vercel
+```bash
+npm run start
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Linting
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+To run the linter and ensure code quality:
+
+```bash
+npm run lint
+```
+
+## Project Structure
+
+- **`/hooks/useListening.ts`**: Custom hook for handling speech recognition logic.
+- **`/zustand/useAppStore.ts`**: Zustand store for managing application state.
+- **`/components/Listen.tsx`**: Main component for displaying the transcription and handling user interactions.
+
+## Contributing
+
+If you'd like to contribute to Aid.me, please fork the repository and submit a pull request. For any major changes, please open an issue first to discuss what you would like to change.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+For questions or suggestions, please contact [info@ignitechannel.com](mailto:info@ignitechannel.com).
+
+## Repository
+
+Find the repository at: [https://github.com/brown2020/aidme-app](https://github.com/brown2020/aidme-app)

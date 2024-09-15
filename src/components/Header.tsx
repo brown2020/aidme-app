@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import logo from "../assets/aidme.png";
 import { useEffect, useRef } from "react";
 
-type Props = {};
-export default function Header({}: Props) {
+export default function Header() {
   const { shouldListen, setShouldListen } = useAppStore();
   const router = useRouter();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);

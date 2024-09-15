@@ -6,8 +6,7 @@ const items = [
   { title: "Terms", href: "/terms" },
 ];
 
-type Props = {};
-export default function Footer({}: Props) {
+export default function Footer() {
   return (
     <div className="flex gap-2 items-center justify-center h-14">
       {items.map((item) => (

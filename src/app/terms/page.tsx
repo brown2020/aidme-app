@@ -1,7 +1,6 @@
 import TermsPage from "@/components/TermsPage";
 
-type Props = {};
-export default function Terms({}: Props) {
+export default function Terms() {
   return (
     <TermsPage
       privacyLink={"/privacy"}
