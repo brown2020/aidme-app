@@ -61,7 +61,7 @@ export default function Header() {
   }, []);
 
   return (
-    <div className="flex items-center justify-between bg-slate-500 h-16 flex-shrink-0 px-5">
+    <div className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
       <button
         className={`rounded-md text-white px-3 py-2 ${
           shouldListen ? "bg-red-500 animate-pulse" : "bg-slate-900"
