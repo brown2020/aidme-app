@@ -64,20 +64,29 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
       try {
         recognition.start();
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "unknown issue";
-        console.log("Restarting recognition:", message);
+        const errorMessage =
+          error instanceof Error
+            ? `Recognition error: ${error.message}`
+            : "Unknown recognition error occurred";
+        console.error(errorMessage);
       }
     }
   };
 
   useEffect(() => {
     const recognition = getSpeechRecognitionInstance(language);
-    if (!recognition) return;
+    if (!recognition) {
+      console.error("Speech recognition not supported in this browser");
+      return;
+    }
 
     recognition.onresult = handleResult;
 
-    recognition.onerror = () => restartRecognition(recognition, shouldListen);
+    recognition.onerror = (event) => {
+      console.error(`Speech recognition error: ${event.error}`);
+      restartRecognition(recognition, shouldListen);
+    };
+
     recognition.onspeechend = () =>
       restartRecognition(recognition, shouldListen);
     recognition.onsoundend = () =>
@@ -91,9 +100,11 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
       try {
         recognition.start();
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "unknown issue";
-        console.log("Starting recognition", message);
+        const errorMessage =
+          error instanceof Error
+            ? `Failed to start recognition: ${error.message}`
+            : "Unknown error starting recognition";
+        console.error(errorMessage);
       }
     } else {
       console.log("Stopping recognition");
@@ -102,9 +113,11 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
       try {
         recognition.stop();
       } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : "unknown issue";
-        console.log("Stopping recognition", message);
+        const errorMessage =
+          error instanceof Error
+            ? `Failed to stop recognition: ${error.message}`
+            : "Unknown error stopping recognition";
+        console.error(errorMessage);
       }
     }
 

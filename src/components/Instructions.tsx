@@ -8,15 +8,14 @@ export default function Instructions() {
   const router = useRouter();
 
   return (
-    <div className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg">
-      <div>
-        Aid.me listens to nearby speakers and transcribes speech for you.
-      </div>
-      <div>Speakers must be closer than 6 feet and speak clearly.</div>
-      <div>
+    <main className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg">
+      <h1 className="text-4xl mb-4">Aid.me</h1>
+      <p>Aid.me listens to nearby speakers and transcribes speech for you.</p>
+      <p>Speakers must be closer than 6 feet and speak clearly.</p>
+      <p>
         Click the microphone to begin. Allow microphone and speech transcription
         permissions.
-      </div>
+      </p>
 
       <button
         className={`rounded-md text-white px-3 py-2 border mx-auto ${
@@ -27,9 +26,10 @@ export default function Instructions() {
           console.log("shouldListen", shouldListen);
           router.push("/");
         }}
+        aria-label="Start listening"
       >
         <MicIcon size={60} />
       </button>
-    </div>
+    </main>
   );
 }

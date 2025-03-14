@@ -21,19 +21,30 @@ export default function Listen() {
   if (!shouldListen && transcript.length === 0) return <Instructions />;
 
   return (
-    <div className="flex flex-col w-full h-full space-y-9 text-4xl text-white bg-black font-semibold p-5 tracking-tight">
+    <main
+      className="flex flex-col w-full h-full space-y-9 text-4xl text-white bg-black font-semibold p-5 tracking-tight"
+      aria-live="polite"
+      aria-atomic="true"
+      aria-relevant="additions text"
+    >
       {transcript.map((sentence, index) => (
         <p key={index}>{sentence}</p>
       ))}
-      {interimTranscript && <div>{interimTranscript}</div>}
+      {interimTranscript && (
+        <div aria-label="Processing speech">{interimTranscript}</div>
+      )}
       {!interimTranscript && isListening && (
-        <div>
+        <div aria-label="Listening for speech">
           <ScaleLoader color="#ffffff" />
         </div>
       )}
-      <div className="h-14 w-full opacity-0" ref={transcriptRef}>
+      <div
+        className="h-14 w-full opacity-0"
+        ref={transcriptRef}
+        aria-hidden="true"
+      >
         footer
       </div>
-    </div>
+    </main>
   );
 }

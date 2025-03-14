@@ -1,5 +1,13 @@
-import Listen from "@/components/Listen";
+import dynamic from "next/dynamic";
 
-export default function page() {
+const Listen = dynamic(() => import("@/components/Listen"), {
+  loading: () => (
+    <div className="flex items-center justify-center h-full w-full text-white">
+      Loading...
+    </div>
+  ),
+});
+
+export default function Page() {
   return <Listen />;
 }

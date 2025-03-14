@@ -1,10 +1,35 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
   title: "Aid.me",
   description: "Can you hear me now? Closed captions for your life.",
+  keywords: [
+    "accessibility",
+    "captions",
+    "transcription",
+    "hearing assistance",
+  ],
+  authors: [{ name: "Aid.me Team" }],
+  openGraph: {
+    title: "Aid.me - Closed captions for your life",
+    description:
+      "Real-time speech transcription to help you hear the world around you.",
+    url: "https://aid.me",
+    siteName: "Aid.me",
+    locale: "en_US",
+    type: "website",
+  },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  minimumScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
+  userScalable: false,
 };
 
 export default function RootLayout({
