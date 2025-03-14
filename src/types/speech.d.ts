@@ -11,6 +11,24 @@ interface SpeechRecognitionEvent extends Event {
   resultIndex: number;
 }
 
+interface SpeechRecognitionResultList {
+  readonly length: number;
+  [index: number]: SpeechRecognitionResult;
+  item(index: number): SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  readonly length: number;
+  [index: number]: SpeechRecognitionAlternative;
+  item(index: number): SpeechRecognitionAlternative;
+  isFinal: boolean;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
 declare const SpeechRecognition: {
   prototype: SpeechRecognition;
   new (): SpeechRecognition;

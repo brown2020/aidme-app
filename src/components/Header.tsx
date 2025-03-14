@@ -4,12 +4,14 @@ import { HelpCircleIcon, MicIcon } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import logo from "../assets/aidme.png";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { requestMicrophonePermission } from "@/hooks/useListening";
 
 export default function Header() {
   const { shouldListen, setShouldListen } = useAppStore();
   const router = useRouter();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [permissionDenied, setPermissionDenied] = useState(false);
 
   useEffect(() => {
     if (shouldListen) {
@@ -28,6 +30,25 @@ export default function Header() {
       }
     };
   }, [shouldListen, setShouldListen]);
+
+  const handleMicToggle = async () => {
+    if (!shouldListen) {
+      // If we're turning on the mic, check permissions first
+      const granted = await requestMicrophonePermission();
+      if (!granted) {
+        setPermissionDenied(true);
+        // Show alert and don't toggle
+        alert(
+          "Microphone access was denied. Please allow microphone access in your browser settings."
+        );
+        return;
+      }
+      setPermissionDenied(false);
+    }
+
+    setShouldListen(!shouldListen);
+    router.push("/");
+  };
 
   const handleRefresh = () => {
     // Check if the app is running in a React Native WebView
@@ -64,12 +85,14 @@ export default function Header() {
     <div className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
       <button
         className={`rounded-md text-white px-3 py-2 ${
-          shouldListen ? "bg-red-500 animate-pulse" : "bg-slate-900"
+          shouldListen
+            ? "bg-red-500 animate-pulse"
+            : permissionDenied
+            ? "bg-yellow-600"
+            : "bg-slate-900"
         }`}
-        onClick={() => {
-          setShouldListen(!shouldListen);
-          router.push("/");
-        }}
+        onClick={handleMicToggle}
+        aria-label={shouldListen ? "Stop listening" : "Start listening"}
       >
         <MicIcon size={24} />
       </button>
