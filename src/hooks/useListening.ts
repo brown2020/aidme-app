@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 // Create a type alias for the global SpeechRecognition constructor
 type SpeechRecognitionConstructor = new () => SpeechRecognition;
@@ -10,6 +10,7 @@ interface ExtendedWindow {
 
 // Ensure recognitionInstance is typed correctly
 let recognitionInstance: SpeechRecognition | null = null;
+let isRecognitionActive = false;
 
 // Check if the browser supports speech recognition
 export const isSpeechRecognitionSupported = (): boolean => {
@@ -72,6 +73,7 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
   const [interimTranscript, setInterimTranscript] = useState<string>("");
   const [isListening, setIsListening] = useState<boolean>(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const restartTimeoutRef = useRef<number | null>(null);
 
   const handleResult = (event: SpeechRecognitionEvent) => {
     let newInterimTranscript = "";
@@ -94,21 +96,40 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
     setInterimTranscript(newInterimTranscript);
   };
 
-  const restartRecognition = useCallback(
-    (recognition: SpeechRecognition, shouldListen: boolean) => {
-      if (shouldListen && !permissionError) {
-        try {
-          recognition.start();
-        } catch (error: unknown) {
-          const errorMessage =
-            error instanceof Error
-              ? `Recognition error: ${error.message}`
-              : "Unknown recognition error occurred";
-          console.error(errorMessage);
-        }
+  const startRecognitionSafe = useCallback((recognition: SpeechRecognition) => {
+    if (isRecognitionActive) return;
+    try {
+      recognition.start();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (typeof message === "string" && message.includes("already started")) {
+        return; // Ignore benign race
       }
+      console.error(`Failed to start recognition: ${message}`);
+    }
+  }, []);
+
+  const stopRecognitionSafe = useCallback((recognition: SpeechRecognition) => {
+    if (!isRecognitionActive) return;
+    try {
+      recognition.stop();
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`Failed to stop recognition: ${message}`);
+    }
+  }, []);
+
+  const scheduleRestart = useCallback(
+    (recognition: SpeechRecognition) => {
+      if (restartTimeoutRef.current !== null) return;
+      restartTimeoutRef.current = window.setTimeout(() => {
+        restartTimeoutRef.current = null;
+        if (shouldListen && !permissionError && !isRecognitionActive) {
+          startRecognitionSafe(recognition);
+        }
+      }, 250);
     },
-    [permissionError]
+    [permissionError, shouldListen, startRecognitionSafe]
   );
 
   // Request microphone permission when shouldListen changes to true
@@ -153,66 +174,71 @@ const useListening = (shouldListen: boolean, language = "en-US") => {
     recognition.onresult = handleResult;
 
     recognition.onerror = (event) => {
-      console.error(`Speech recognition error: ${event.error}`);
+      if (event.error === "no-speech") {
+        // Expected when silent; treat as info and let onend restart
+        console.debug("Speech recognition: no-speech (will restart)");
+        stopRecognitionSafe(recognition);
+        return;
+      }
 
-      // Handle specific error types
       if (event.error === "not-allowed") {
         setPermissionError(
           "Microphone access was denied. Please allow microphone access in your browser settings."
         );
-        return; // Don't restart if permission denied
+        return;
       }
 
-      restartRecognition(recognition, shouldListen);
+      // Log unexpected errors and stop; onend will restart if allowed
+      console.error(`Speech recognition error: ${event.error}`);
+      stopRecognitionSafe(recognition);
     };
 
-    recognition.onspeechend = () =>
-      restartRecognition(recognition, shouldListen);
-    recognition.onsoundend = () =>
-      restartRecognition(recognition, shouldListen);
-    recognition.onend = () => restartRecognition(recognition, shouldListen);
+    recognition.onstart = () => {
+      isRecognitionActive = true;
+      setIsListening(true);
+    };
+
+    recognition.onend = () => {
+      isRecognitionActive = false;
+      setIsListening(false);
+      if (shouldListen && !permissionError) {
+        scheduleRestart(recognition);
+      }
+    };
 
     if (shouldListen) {
       console.log("Starting recognition");
-      setIsListening(true);
-
-      try {
-        recognition.start();
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error
-            ? `Failed to start recognition: ${error.message}`
-            : "Unknown error starting recognition";
-        console.error(errorMessage);
-      }
+      startRecognitionSafe(recognition);
     } else {
       console.log("Stopping recognition");
-      setIsListening(false);
-
-      try {
-        recognition.stop();
-      } catch (error: unknown) {
-        const errorMessage =
-          error instanceof Error
-            ? `Failed to stop recognition: ${error.message}`
-            : "Unknown error stopping recognition";
-        console.error(errorMessage);
-      }
+      stopRecognitionSafe(recognition);
     }
 
     return () => {
+      if (restartTimeoutRef.current !== null) {
+        clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = null;
+      }
       try {
         recognition.stop();
       } catch (error) {
         console.error("Error stopping recognition during cleanup:", error);
       }
+      isRecognitionActive = false;
       recognition.onend = () => {};
       recognition.onspeechend = () => {};
       recognition.onsoundend = () => {};
       recognition.onerror = () => {};
       recognition.onresult = () => {};
     };
-  }, [language, shouldListen, permissionError, restartRecognition]);
+  }, [
+    language,
+    shouldListen,
+    permissionError,
+    startRecognitionSafe,
+    stopRecognitionSafe,
+    scheduleRestart,
+  ]);
 
   return {
     transcript,
