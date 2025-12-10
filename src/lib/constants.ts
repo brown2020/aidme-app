@@ -6,3 +6,4 @@ export const MAX_TRANSCRIPT_LENGTH = 200;
 
 /** Delay before restarting speech recognition (ms) */
 export const RECOGNITION_RESTART_DELAY_MS = 250;
+
