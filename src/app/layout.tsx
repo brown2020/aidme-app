@@ -47,9 +47,7 @@ export default function RootLayout({
       <body>
         <div className="flex flex-col w-full h-full bg-black">
           <Header />
-          <div className="flex flex-col h-container w-full overflow-y-scroll">
-            {children}
-          </div>
+          <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </body>
     </html>

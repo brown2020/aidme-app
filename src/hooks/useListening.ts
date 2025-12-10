@@ -2,64 +2,13 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
   MAX_TRANSCRIPT_LENGTH,
   RECOGNITION_RESTART_DELAY_MS,
+  ERROR_MESSAGES,
 } from "@/lib/constants";
-
-type SpeechRecognitionConstructor = new () => SpeechRecognition;
-
-interface ExtendedWindow {
-  webkitSpeechRecognition?: SpeechRecognitionConstructor;
-}
-
-let recognitionInstance: SpeechRecognition | null = null;
-let isRecognitionActive = false;
-
-/** Check if the browser supports speech recognition */
-export const isSpeechRecognitionSupported = (): boolean => {
-  if (typeof window === "undefined") return false;
-  return !!(
-    window.SpeechRecognition ||
-    (window as unknown as ExtendedWindow).webkitSpeechRecognition
-  );
-};
-
-/** Request microphone permission explicitly */
-export const requestMicrophonePermission = async (): Promise<boolean> => {
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    stream.getTracks().forEach((track) => track.stop());
-    return true;
-  } catch {
-    return false;
-  }
-};
-
-const getSpeechRecognitionInstance = (
-  language = "en-US"
-): SpeechRecognition | null => {
-  if (typeof window === "undefined") return null;
-
-  const SpeechRecognition = (window.SpeechRecognition ||
-    (window as unknown as ExtendedWindow).webkitSpeechRecognition) as
-    | SpeechRecognitionConstructor
-    | undefined;
-
-  if (!SpeechRecognition) return null;
-
-  if (!recognitionInstance) {
-    try {
-      recognitionInstance = new SpeechRecognition();
-      recognitionInstance.continuous = true;
-      recognitionInstance.interimResults = true;
-      recognitionInstance.lang = language;
-    } catch {
-      return null;
-    }
-  } else if (recognitionInstance.lang !== language) {
-    recognitionInstance.lang = language;
-  }
-
-  return recognitionInstance;
-};
+import {
+  getSpeechRecognitionInstance,
+  getIsRecognitionActive,
+  setIsRecognitionActive,
+} from "@/lib/speechRecognition";
 
 interface UseListeningResult {
   transcript: string[];
@@ -101,7 +50,7 @@ export default function useListening(
   }, []);
 
   const startRecognition = useCallback((recognition: SpeechRecognition) => {
-    if (isRecognitionActive) return;
+    if (getIsRecognitionActive()) return;
     try {
       recognition.start();
     } catch (error) {
@@ -113,7 +62,7 @@ export default function useListening(
   }, []);
 
   const stopRecognition = useCallback((recognition: SpeechRecognition) => {
-    if (!isRecognitionActive) return;
+    if (!getIsRecognitionActive()) return;
     try {
       recognition.stop();
     } catch (error) {
@@ -126,32 +75,13 @@ export default function useListening(
       if (restartTimeoutRef.current !== null) return;
       restartTimeoutRef.current = window.setTimeout(() => {
         restartTimeoutRef.current = null;
-        if (shouldListen && !permissionError && !isRecognitionActive) {
+        if (shouldListen && !permissionError && !getIsRecognitionActive()) {
           startRecognition(recognition);
         }
       }, RECOGNITION_RESTART_DELAY_MS);
     },
     [permissionError, shouldListen, startRecognition]
   );
-
-  // Request permission when listening starts
-  useEffect(() => {
-    if (!shouldListen || typeof navigator === "undefined") return;
-
-    requestMicrophonePermission()
-      .then((granted) => {
-        setPermissionError(
-          granted
-            ? null
-            : "Microphone permission denied. Please allow microphone access in your browser settings."
-        );
-      })
-      .catch(() => {
-        setPermissionError(
-          "Error requesting microphone permission. Please check your browser settings."
-        );
-      });
-  }, [shouldListen]);
 
   // Main recognition effect
   useEffect(() => {
@@ -168,9 +98,7 @@ export default function useListening(
         return;
       }
       if (event.error === "not-allowed") {
-        setPermissionError(
-          "Microphone access was denied. Please allow microphone access in your browser settings."
-        );
+        setPermissionError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
         return;
       }
       console.error(`Speech recognition error: ${event.error}`);
@@ -178,12 +106,12 @@ export default function useListening(
     };
 
     recognition.onstart = () => {
-      isRecognitionActive = true;
+      setIsRecognitionActive(true);
       setIsListening(true);
     };
 
     recognition.onend = () => {
-      isRecognitionActive = false;
+      setIsRecognitionActive(false);
       setIsListening(false);
       if (shouldListen && !permissionError) {
         scheduleRestart(recognition);
@@ -206,14 +134,7 @@ export default function useListening(
       } catch {
         // Ignore cleanup errors
       }
-      isRecognitionActive = false;
-      // Clear handlers with no-ops to prevent memory leaks
-      const noop = () => {};
-      recognition.onend = noop;
-      recognition.onspeechend = noop;
-      recognition.onsoundend = noop;
-      recognition.onerror = noop;
-      recognition.onresult = noop;
+      setIsRecognitionActive(false);
     };
   }, [
     language,

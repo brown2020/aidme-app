@@ -1,10 +1,5 @@
 import TermsPage from "@/components/TermsPage";
-
-const COMPANY_INFO = {
-  name: "Ignite Channel",
-  email: "info@ignitechannel.com",
-  updatedAt: "November 1, 2023",
-} as const;
+import { COMPANY_INFO } from "@/lib/constants";
 
 export default function Terms() {
   return (
@@ -16,4 +11,3 @@ export default function Terms() {
     />
   );
 }
-

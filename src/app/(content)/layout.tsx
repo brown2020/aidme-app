@@ -6,10 +6,9 @@ export default function ContentLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col flex-1 h-container w-full p-5 space-y-5 overflow-y-scroll">
-      {children}
+    <div className="flex flex-col h-container w-full p-5 space-y-5 overflow-y-auto">
+      <div className="flex-1">{children}</div>
       <Footer />
     </div>
   );
 }
-

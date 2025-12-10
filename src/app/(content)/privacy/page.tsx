@@ -1,12 +1,5 @@
 import PrivacyPage from "@/components/PrivacyPage";
-
-const COMPANY_INFO = {
-  name: "Ignite Channel",
-  email: "info@ignitechannel.com",
-  address: "30765 Pacific Coast Hwy, Suite 354",
-  location: "Malibu, CA",
-  updatedAt: "November 1, 2023",
-} as const;
+import { COMPANY_INFO } from "@/lib/constants";
 
 export default function Privacy() {
   return (
@@ -19,4 +12,3 @@ export default function Privacy() {
     />
   );
 }
-

@@ -11,6 +11,8 @@ interface AppActions {
 
 type AppStore = AppState & AppActions;
 
+// Devtools middleware has minimal overhead in production and
+// provides useful debugging capabilities in development
 export const useAppStore = create<AppStore>()(
   devtools(
     (set) => ({
@@ -19,6 +21,7 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: "app-store",
+      enabled: process.env.NODE_ENV === "development",
     }
   )
 );

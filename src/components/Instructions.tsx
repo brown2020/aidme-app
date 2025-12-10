@@ -1,72 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Mic } from "lucide-react";
-import { useAppStore } from "@/zustand/useAppStore";
-import {
-  isSpeechRecognitionSupported,
-  requestMicrophonePermission,
-} from "@/hooks/useListening";
+import { useStartListening } from "@/hooks/useStartListening";
 import Alert from "./Alert";
 
-type PermissionStatus = "granted" | "denied" | "prompt" | "unknown";
-
 export default function Instructions() {
-  const { shouldListen, setShouldListen } = useAppStore();
-  const router = useRouter();
-  const [isBrowserSupported, setIsBrowserSupported] = useState<boolean | null>(
-    null
-  );
-  const [permissionStatus, setPermissionStatus] =
-    useState<PermissionStatus>("unknown");
+  const { startListening, isSupported, permissionStatus, error } =
+    useStartListening({ navigateToHome: true });
 
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    setIsBrowserSupported(isSpeechRecognitionSupported());
-
-    // Check microphone permission status if available
-    navigator.permissions
-      ?.query({ name: "microphone" as PermissionName })
-      .then((result) => {
-        setPermissionStatus(result.state as PermissionStatus);
-        result.onchange = () =>
-          setPermissionStatus(result.state as PermissionStatus);
-      })
-      .catch(() => {
-        // Permission API not supported, leave as unknown
-      });
-  }, []);
-
-  const handleStartListening = async () => {
-    if (!isBrowserSupported) return;
-
-    if (permissionStatus === "denied") {
-      alert(
-        "Microphone access is blocked. Please allow microphone access in your browser settings."
-      );
-      return;
-    }
-
-    if (permissionStatus !== "granted") {
-      const granted = await requestMicrophonePermission();
-      if (!granted) {
-        alert(
-          "Microphone access was denied. Aid.me needs microphone access to work."
-        );
-        return;
-      }
-    }
-
-    setShouldListen(true);
-    router.push("/");
-  };
-
-  const isDisabled = isBrowserSupported === false;
+  const isDisabled = !isSupported;
 
   return (
-    <main className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg">
+    <main className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg overflow-y-auto">
       <h1 className="text-4xl mb-4">Aid.me</h1>
       <p>Aid.me listens to nearby speakers and transcribes speech for you.</p>
       <p>Speakers must be closer than 6 feet and speak clearly.</p>
@@ -75,7 +20,7 @@ export default function Instructions() {
         permissions.
       </p>
 
-      {isBrowserSupported === false && (
+      {!isSupported && (
         <Alert variant="warning">
           Speech recognition is not supported in this browser. For best results,
           please use Chrome, Edge, or Safari.
@@ -89,11 +34,15 @@ export default function Instructions() {
         </Alert>
       )}
 
+      {error && permissionStatus !== "denied" && (
+        <Alert variant="error">{error}</Alert>
+      )}
+
       <button
-        className={`rounded-md text-white px-3 py-2 border mx-auto flex items-center justify-center ${
-          shouldListen ? "bg-red-500 animate-pulse" : "bg-slate-900"
-        } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
-        onClick={handleStartListening}
+        className={`rounded-md text-white px-3 py-2 border mx-auto flex items-center justify-center bg-slate-900 ${
+          isDisabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
+        onClick={startListening}
         disabled={isDisabled}
         aria-label="Start listening"
       >
