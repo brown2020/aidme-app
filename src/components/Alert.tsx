@@ -14,20 +14,19 @@ const variantConfig: Record<
 > = {
   info: {
     icon: Info,
-    styles: "text-blue-500 bg-blue-100 dark:bg-blue-900 dark:text-blue-100",
+    styles: "text-blue-100 bg-blue-900",
   },
   success: {
     icon: CheckCircle,
-    styles: "text-green-500 bg-green-100 dark:bg-green-900 dark:text-green-100",
+    styles: "text-green-100 bg-green-900",
   },
   warning: {
     icon: AlertTriangle,
-    styles:
-      "text-yellow-500 bg-yellow-100 dark:bg-yellow-900 dark:text-yellow-100",
+    styles: "text-yellow-100 bg-yellow-900",
   },
   error: {
     icon: AlertTriangle,
-    styles: "text-red-500 bg-red-100 dark:bg-red-900 dark:text-red-100",
+    styles: "text-red-100 bg-red-900",
   },
 };
 

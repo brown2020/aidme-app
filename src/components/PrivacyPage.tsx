@@ -1,18 +1,13 @@
-type Props = {
-  companyName: string;
-  companyEmail: string;
-  companyAddress: string;
-  companyLocation: string;
-  updatedAt: string;
-};
+import { COMPANY_INFO } from "@/lib/constants";
 
-export default function Privacy({
-  companyName,
-  companyEmail,
-  companyAddress,
-  companyLocation,
-  updatedAt,
-}: Props) {
+export default function Privacy() {
+  const {
+    name: companyName,
+    email: companyEmail,
+    address: companyAddress,
+    location: companyLocation,
+    updatedAt,
+  } = COMPANY_INFO;
   return (
     <div className="text-wrapper">
       <h3>Privacy Policy</h3>

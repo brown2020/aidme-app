@@ -52,14 +52,14 @@ export function useStartListening(
   const toggleListening = useCallback(async () => {
     if (shouldListen) {
       stopListening();
+      if (navigateToHome) {
+        router.push("/");
+      }
     } else {
       const started = await startListening();
       if (!started && status === "denied") {
         alert(ERROR_MESSAGES.MIC_NOT_ALLOWED);
       }
-    }
-    if (navigateToHome) {
-      router.push("/");
     }
   }, [
     shouldListen,

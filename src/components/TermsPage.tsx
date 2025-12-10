@@ -1,16 +1,10 @@
-type Props = {
-  companyName: string;
-  companyEmail: string;
-  privacyLink: string;
-  updatedAt: string;
-};
+import { COMPANY_INFO } from "@/lib/constants";
 
-export default function Terms({
-  companyName,
-  companyEmail,
-  privacyLink,
-  updatedAt,
-}: Props) {
+const PRIVACY_LINK = "/privacy";
+
+export default function Terms() {
+  const { name: companyName, email: companyEmail, updatedAt } = COMPANY_INFO;
+  const privacyLink = PRIVACY_LINK;
   return (
     <div className="text-wrapper">
       <h3>Terms of Service</h3>

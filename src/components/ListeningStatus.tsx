@@ -5,19 +5,14 @@ interface ListeningStatusProps {
 }
 
 export default function ListeningStatus({ isListening }: ListeningStatusProps) {
-  if (isListening) {
-    return (
-      <div className="flex items-center text-green-500 text-sm gap-1">
-        <Mic className="animate-pulse" size={16} />
-        <span>Listening</span>
-      </div>
-    );
-  }
+  const Icon = isListening ? Mic : MicOff;
+  const colorClass = isListening ? "text-green-500" : "text-red-500";
+  const label = isListening ? "Listening" : "Not listening";
 
   return (
-    <div className="flex items-center text-red-500 text-sm gap-1">
-      <MicOff size={16} />
-      <span>Not listening</span>
+    <div className={`flex items-center text-sm gap-1 ${colorClass}`}>
+      <Icon className={isListening ? "animate-pulse" : undefined} size={16} />
+      <span>{label}</span>
     </div>
   );
 }

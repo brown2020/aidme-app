@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import { HelpCircleIcon, MicIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,13 +34,6 @@ export default function Header() {
     };
   }, [isListening, stopListening]);
 
-  const handleLogoClick = useCallback(() => {
-    // Post message to React Native WebView if running in that context
-    if (window.ReactNativeWebView) {
-      window.ReactNativeWebView.postMessage("refresh");
-    }
-  }, []);
-
   const micButtonClass =
     permissionStatus === "denied"
       ? "bg-yellow-600"
@@ -58,7 +51,10 @@ export default function Header() {
         <MicIcon size={24} />
       </button>
 
-      <button onClick={handleLogoClick} aria-label="Aid.me home">
+      <button
+        onClick={() => window.ReactNativeWebView?.postMessage("refresh")}
+        aria-label="Aid.me home"
+      >
         <Image
           src={logo}
           alt="Aid.me logo"
