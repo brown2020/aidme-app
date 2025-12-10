@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAppStore } from "@/zustand/useAppStore";
+import { Mic, MicOff } from "lucide-react";
 import { ScaleLoader } from "react-spinners";
-import Instructions from "./Instructions";
+import { useAppStore } from "@/zustand/useAppStore";
 import useListening, {
   isSpeechRecognitionSupported,
   requestMicrophonePermission,
 } from "@/hooks/useListening";
-import { AlertTriangle, Mic, MicOff } from "lucide-react";
+import Alert from "./Alert";
+import Instructions from "./Instructions";
 
 export default function Listen() {
   const { shouldListen, setShouldListen } = useAppStore();
@@ -19,27 +20,23 @@ export default function Listen() {
     permissionError,
     setPermissionError,
   } = useListening(shouldListen);
-  const transcriptRef = useRef<HTMLDivElement>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
   const [browserError, setBrowserError] = useState<string | null>(null);
 
+  // Auto-scroll to latest transcript
   useEffect(() => {
-    if (transcriptRef.current) {
-      transcriptRef.current.scrollIntoView({ behavior: "smooth" });
-    }
+    transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript, interimTranscript]);
 
-  // Check if browser supports speech recognition
+  // Check browser support on mount
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      if (!isSpeechRecognitionSupported()) {
-        setBrowserError(
-          "Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari."
-        );
-      }
+    if (typeof window !== "undefined" && !isSpeechRecognitionSupported()) {
+      setBrowserError(
+        "Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari."
+      );
     }
   }, []);
 
-  // Handle permission request
   const handleRequestPermission = async () => {
     const granted = await requestMicrophonePermission();
     if (granted) {
@@ -52,34 +49,36 @@ export default function Listen() {
     }
   };
 
+  // Show instructions if not listening and no transcript
+  if (!shouldListen && transcript.length === 0) {
+    return <Instructions />;
+  }
+
+  // Show browser error with instructions fallback
   if (browserError) {
     return (
-      <main className="flex flex-col items-center justify-center w-full h-full p-5 text-white bg-black">
-        <div className="p-4 mb-4 text-sm text-red-500 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-100 flex items-center">
-          <AlertTriangle className="mr-2" />
-          <p>{browserError}</p>
-        </div>
+      <main className="flex flex-col items-center justify-center w-full h-full p-5 text-white bg-black gap-4">
+        <Alert variant="error">{browserError}</Alert>
         <Instructions />
       </main>
     );
   }
 
+  // Show permission error with retry option
   if (permissionError) {
     return (
-      <main className="flex flex-col items-center justify-center w-full h-full p-5 text-white bg-black">
-        <div className="p-4 mb-4 text-sm text-yellow-500 bg-yellow-100 rounded-lg dark:bg-yellow-900 dark:text-yellow-100 flex items-center">
-          <AlertTriangle className="mr-2" />
-          <p>{permissionError}</p>
-        </div>
-        <div className="mt-8 flex flex-col items-center">
-          <p className="mb-4 text-xl">Aid.me needs microphone access to work</p>
+      <main className="flex flex-col items-center justify-center w-full h-full p-5 text-white bg-black gap-6">
+        <Alert variant="warning">{permissionError}</Alert>
+        <div className="flex flex-col items-center gap-4">
+          <p className="text-xl">Aid.me needs microphone access to work</p>
           <button
-            className="rounded-md text-white px-6 py-3 bg-blue-600 hover:bg-blue-700 flex items-center"
+            className="rounded-md text-white px-6 py-3 bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
             onClick={handleRequestPermission}
           >
-            <Mic className="mr-2" /> Request Microphone Access
+            <Mic size={20} />
+            Request Microphone Access
           </button>
-          <p className="mt-4 text-sm text-gray-400">
+          <p className="text-sm text-gray-400">
             If you&apos;ve denied permission, you&apos;ll need to reset it in
             your browser settings
           </p>
@@ -87,8 +86,6 @@ export default function Listen() {
       </main>
     );
   }
-
-  if (!shouldListen && transcript.length === 0) return <Instructions />;
 
   return (
     <main
@@ -99,17 +96,7 @@ export default function Listen() {
     >
       <div className="flex items-center justify-between">
         <h2 className="text-2xl">Transcription</h2>
-        {isListening ? (
-          <div className="flex items-center text-green-500 text-sm">
-            <Mic className="mr-1 animate-pulse" size={16} />
-            <span>Listening</span>
-          </div>
-        ) : (
-          <div className="flex items-center text-red-500 text-sm">
-            <MicOff className="mr-1" size={16} />
-            <span>Not listening</span>
-          </div>
-        )}
+        <ListeningStatus isListening={isListening} />
       </div>
 
       {transcript.length > 0 ? (
@@ -128,13 +115,25 @@ export default function Listen() {
         </div>
       )}
 
-      <div
-        className="h-14 w-full opacity-0"
-        ref={transcriptRef}
-        aria-hidden="true"
-      >
-        footer
-      </div>
+      <div className="h-14 w-full" ref={transcriptEndRef} aria-hidden="true" />
     </main>
+  );
+}
+
+function ListeningStatus({ isListening }: { isListening: boolean }) {
+  if (isListening) {
+    return (
+      <div className="flex items-center text-green-500 text-sm gap-1">
+        <Mic className="animate-pulse" size={16} />
+        <span>Listening</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center text-red-500 text-sm gap-1">
+      <MicOff size={16} />
+      <span>Not listening</span>
+    </div>
   );
 }

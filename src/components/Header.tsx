@@ -1,117 +1,113 @@
 "use client";
-import { useAppStore } from "@/zustand/useAppStore";
-import { HelpCircleIcon, MicIcon } from "lucide-react";
-import Image from "next/image";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import logo from "../assets/aidme.png";
-import { useEffect, useRef, useState } from "react";
+import Image from "next/image";
+import { HelpCircleIcon, MicIcon } from "lucide-react";
+import { useAppStore } from "@/zustand/useAppStore";
 import { requestMicrophonePermission } from "@/hooks/useListening";
+import { LISTENING_TIMEOUT_MS } from "@/lib/constants";
+import logo from "../assets/aidme.png";
 
 export default function Header() {
   const { shouldListen, setShouldListen } = useAppStore();
   const router = useRouter();
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [permissionDenied, setPermissionDenied] = useState(false);
+  const [hasPermissionError, setHasPermissionError] = useState(false);
 
+  // Auto-stop listening after timeout
   useEffect(() => {
-    if (shouldListen) {
-      timeoutRef.current = setTimeout(() => {
-        setShouldListen(false);
-      }, 30 * 60 * 1000); // 30 minutes
-    } else {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+    if (!shouldListen) {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      return;
     }
 
+    timeoutRef.current = setTimeout(() => {
+      setShouldListen(false);
+    }, LISTENING_TIMEOUT_MS);
+
     return () => {
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
   }, [shouldListen, setShouldListen]);
 
-  const handleMicToggle = async () => {
+  // Set CSS variable for viewport height (mobile browser compatibility)
+  useEffect(() => {
+    const updateViewportHeight = () => {
+      document.documentElement.style.setProperty(
+        "--vh",
+        `${window.innerHeight * 0.01}px`
+      );
+    };
+
+    updateViewportHeight();
+    window.addEventListener("resize", updateViewportHeight);
+    window.addEventListener("orientationchange", updateViewportHeight);
+
+    return () => {
+      window.removeEventListener("resize", updateViewportHeight);
+      window.removeEventListener("orientationchange", updateViewportHeight);
+    };
+  }, []);
+
+  const handleMicToggle = useCallback(async () => {
     if (!shouldListen) {
-      // If we're turning on the mic, check permissions first
       const granted = await requestMicrophonePermission();
       if (!granted) {
-        setPermissionDenied(true);
-        // Show alert and don't toggle
+        setHasPermissionError(true);
         alert(
           "Microphone access was denied. Please allow microphone access in your browser settings."
         );
         return;
       }
-      setPermissionDenied(false);
+      setHasPermissionError(false);
     }
 
     setShouldListen(!shouldListen);
     router.push("/");
-  };
+  }, [shouldListen, setShouldListen, router]);
 
-  const handleRefresh = () => {
-    // Check if the app is running in a React Native WebView
+  const handleLogoClick = useCallback(() => {
+    // Post message to React Native WebView if running in that context
     if (window.ReactNativeWebView) {
-      // Post a message to the React Native WebView
       window.ReactNativeWebView.postMessage("refresh");
-    } else {
-      console.log("Not React Native WebView environment");
     }
-  };
-
-  useEffect(() => {
-    function adjustHeight() {
-      document.documentElement.style.setProperty(
-        "--vh",
-        `${window.innerHeight * 0.01}px`
-      );
-    }
-
-    window.addEventListener("resize", adjustHeight);
-    window.addEventListener("orientationchange", adjustHeight);
-
-    // Initial adjustment
-    adjustHeight();
-
-    // Cleanup
-    return () => {
-      window.removeEventListener("resize", adjustHeight);
-      window.removeEventListener("orientationchange", adjustHeight);
-    };
   }, []);
 
+  const micButtonClass = hasPermissionError
+    ? "bg-yellow-600"
+    : shouldListen
+    ? "bg-red-500 animate-pulse"
+    : "bg-slate-900";
+
   return (
-    <div className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
+    <header className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
       <button
-        className={`rounded-md text-white px-3 py-2 ${
-          shouldListen
-            ? "bg-red-500 animate-pulse"
-            : permissionDenied
-            ? "bg-yellow-600"
-            : "bg-slate-900"
-        }`}
+        className={`rounded-md text-white px-3 py-2 ${micButtonClass}`}
         onClick={handleMicToggle}
         aria-label={shouldListen ? "Stop listening" : "Start listening"}
       >
         <MicIcon size={24} />
       </button>
-      <button onClick={() => handleRefresh()}>
+
+      <button onClick={handleLogoClick} aria-label="Aid.me home">
         <Image
           src={logo}
-          alt="logo"
+          alt="Aid.me logo"
           className="h-10 w-10 invert"
           width={40}
           height={40}
           priority
         />
       </button>
+
       <button
-        className={`rounded-md text-white`}
+        className="rounded-md text-white"
         onClick={() => router.push("/about")}
+        aria-label="Help and instructions"
       >
         <HelpCircleIcon size={32} />
       </button>
-    </div>
+    </header>
   );
 }

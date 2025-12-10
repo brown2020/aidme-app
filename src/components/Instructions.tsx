@@ -1,12 +1,16 @@
 "use client";
-import { useAppStore } from "@/zustand/useAppStore";
-import { AlertTriangle, Mic } from "lucide-react";
-import { useRouter } from "next/navigation";
+
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Mic } from "lucide-react";
+import { useAppStore } from "@/zustand/useAppStore";
 import {
   isSpeechRecognitionSupported,
   requestMicrophonePermission,
 } from "@/hooks/useListening";
+import Alert from "./Alert";
+
+type PermissionStatus = "granted" | "denied" | "prompt" | "unknown";
 
 export default function Instructions() {
   const { shouldListen, setShouldListen } = useAppStore();
@@ -14,35 +18,25 @@ export default function Instructions() {
   const [isBrowserSupported, setIsBrowserSupported] = useState<boolean | null>(
     null
   );
-  const [permissionStatus, setPermissionStatus] = useState<
-    "granted" | "denied" | "prompt" | "unknown"
-  >("unknown");
+  const [permissionStatus, setPermissionStatus] =
+    useState<PermissionStatus>("unknown");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setIsBrowserSupported(isSpeechRecognitionSupported());
+    if (typeof window === "undefined") return;
 
-      // Check if we can access permission status
-      if (navigator.permissions && navigator.permissions.query) {
-        navigator.permissions
-          .query({ name: "microphone" as PermissionName })
-          .then((permissionStatus) => {
-            setPermissionStatus(
-              permissionStatus.state as "granted" | "denied" | "prompt"
-            );
+    setIsBrowserSupported(isSpeechRecognitionSupported());
 
-            // Listen for changes to permission status
-            permissionStatus.onchange = () => {
-              setPermissionStatus(
-                permissionStatus.state as "granted" | "denied" | "prompt"
-              );
-            };
-          })
-          .catch((error) => {
-            console.error("Error checking permission status:", error);
-          });
-      }
-    }
+    // Check microphone permission status if available
+    navigator.permissions
+      ?.query({ name: "microphone" as PermissionName })
+      .then((result) => {
+        setPermissionStatus(result.state as PermissionStatus);
+        result.onchange = () =>
+          setPermissionStatus(result.state as PermissionStatus);
+      })
+      .catch(() => {
+        // Permission API not supported, leave as unknown
+      });
   }, []);
 
   const handleStartListening = async () => {
@@ -55,7 +49,6 @@ export default function Instructions() {
       return;
     }
 
-    // If permission status is unknown or prompt, request permission
     if (permissionStatus !== "granted") {
       const granted = await requestMicrophonePermission();
       if (!granted) {
@@ -70,6 +63,8 @@ export default function Instructions() {
     router.push("/");
   };
 
+  const isDisabled = isBrowserSupported === false;
+
   return (
     <main className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg">
       <h1 className="text-4xl mb-4">Aid.me</h1>
@@ -81,33 +76,25 @@ export default function Instructions() {
       </p>
 
       {isBrowserSupported === false && (
-        <div className="p-4 mb-4 text-sm text-yellow-500 bg-yellow-100 rounded-lg dark:bg-yellow-900 dark:text-yellow-100 flex items-center">
-          <AlertTriangle className="mr-2" />
-          <p>
-            Speech recognition is not supported in this browser. For best
-            results, please use Chrome, Edge, or Safari.
-          </p>
-        </div>
+        <Alert variant="warning">
+          Speech recognition is not supported in this browser. For best results,
+          please use Chrome, Edge, or Safari.
+        </Alert>
       )}
 
       {permissionStatus === "denied" && (
-        <div className="p-4 mb-4 text-sm text-red-500 bg-red-100 rounded-lg dark:bg-red-900 dark:text-red-100 flex items-center">
-          <AlertTriangle className="mr-2" />
-          <p>
-            Microphone access is blocked. Please allow microphone access in your
-            browser settings.
-          </p>
-        </div>
+        <Alert variant="error">
+          Microphone access is blocked. Please allow microphone access in your
+          browser settings.
+        </Alert>
       )}
 
       <button
         className={`rounded-md text-white px-3 py-2 border mx-auto flex items-center justify-center ${
           shouldListen ? "bg-red-500 animate-pulse" : "bg-slate-900"
-        } ${
-          isBrowserSupported === false ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        } ${isDisabled ? "opacity-50 cursor-not-allowed" : ""}`}
         onClick={handleStartListening}
-        disabled={isBrowserSupported === false}
+        disabled={isDisabled}
         aria-label="Start listening"
       >
         <Mic size={60} />
