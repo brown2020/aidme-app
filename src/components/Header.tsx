@@ -13,7 +13,7 @@ export default function Header() {
   const { toggleListening, stopListening, isListening, permissionStatus } =
     useStartListening({ navigateToHome: true });
   const router = useRouter();
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Set CSS variable for viewport height (mobile browser compatibility)
   useViewportHeight();

@@ -62,11 +62,20 @@ export function setIsRecognitionActive(active: boolean): void {
  * Request microphone permission explicitly
  */
 export async function requestMicrophonePermission(): Promise<boolean> {
+  if (typeof navigator === "undefined") return false;
+  const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(
+    navigator.mediaDevices
+  );
+  if (!getUserMedia) return false;
+
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    const stream = await getUserMedia({ audio: true });
     stream.getTracks().forEach((track) => track.stop());
     return true;
   } catch {
     return false;
   }
 }
+
+
+

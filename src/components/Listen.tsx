@@ -12,7 +12,7 @@ import Instructions from "./Instructions";
 import ListeningStatus from "./ListeningStatus";
 
 export default function Listen() {
-  const { shouldListen, setShouldListen } = useAppStore();
+  const { shouldListen } = useAppStore();
   const { startListening } = useStartListening();
   const {
     transcript,
@@ -32,7 +32,6 @@ export default function Listen() {
     const granted = await startListening();
     if (granted) {
       setPermissionError(null);
-      setShouldListen(true);
     }
   };
 

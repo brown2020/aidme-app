@@ -37,3 +37,5 @@ export const NAV_LINKS = [
   { title: "Privacy", href: "/privacy" },
   { title: "Terms", href: "/terms" },
 ] as const;
+
+

@@ -41,7 +41,9 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) {
+    const supported = isSpeechRecognitionSupported();
+    if (!supported) {
+      setIsSupported(false);
       setError(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
       return false;
     }
@@ -61,7 +63,7 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
       setError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
       return false;
     }
-  }, [isSupported, status]);
+  }, [status]);
 
   return {
     status,
@@ -70,3 +72,6 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
     requestPermission,
   };
 }
+
+
+
