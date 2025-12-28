@@ -1,11 +1,11 @@
 # Aid.me
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
-[![Zustand](https://img.shields.io/badge/Zustand-5-orange)](https://zustand-demo.pmnd.rs/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?logo=next.js)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-19.2.3-61DAFB?logo=react)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.1.18-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
+[![Zustand](https://img.shields.io/badge/Zustand-5.0.9-orange)](https://zustand-demo.pmnd.rs/)
+[![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE.md)
 
 **Aid.me** is a real-time speech transcription web application designed for accessibility. It uses the Web Speech API to provide live closed captioning, making it ideal for individuals with hearing difficulties, note-taking, or any situation where real-time transcription is needed.
 
@@ -34,27 +34,27 @@ Aid.me is also available as a native app on the [Apple App Store](https://apps.a
 
 | Package                                                  | Version  | Description                     |
 | -------------------------------------------------------- | -------- | ------------------------------- |
-| [Next.js](https://nextjs.org/)                           | ^16.0.3  | React framework with App Router |
-| [React](https://react.dev/)                              | ^19.0.0  | UI library                      |
-| [React DOM](https://react.dev/)                          | ^19.0.0  | React DOM renderer              |
-| [Zustand](https://zustand-demo.pmnd.rs/)                 | ^5.0.1   | Lightweight state management    |
-| [Lucide React](https://lucide.dev/)                      | ^0.559.0 | Beautiful icon library          |
-| [React Spinners](https://www.davidhu.io/react-spinners/) | ^0.17.0  | Loading indicators              |
-| [Sharp](https://sharp.pixelplumbing.com/)                | ^0.34.1  | Image optimization for Next.js  |
+| [Next.js](https://nextjs.org/)                           | 16.1.1   | React framework with App Router |
+| [React](https://react.dev/)                              | 19.2.3   | UI library                      |
+| [React DOM](https://react.dev/)                          | 19.2.3   | React DOM renderer              |
+| [Zustand](https://zustand-demo.pmnd.rs/)                 | 5.0.9    | Lightweight state management    |
+| [Lucide React](https://lucide.dev/)                      | 0.562.0  | Beautiful icon library          |
+| [React Spinners](https://www.davidhu.io/react-spinners/) | 0.17.0   | Loading indicators              |
+| [Sharp](https://sharp.pixelplumbing.com/)                | 0.34.5   | Image optimization for Next.js  |
 
 ### Dev Dependencies
 
 | Package                                                                       | Version | Description                 |
 | ----------------------------------------------------------------------------- | ------- | --------------------------- |
-| [TypeScript](https://www.typescriptlang.org/)                                 | ^5.6.2  | Type-safe JavaScript        |
-| [Tailwind CSS](https://tailwindcss.com/)                                      | ^4.0.8  | Utility-first CSS framework |
-| [@tailwindcss/postcss](https://tailwindcss.com/)                              | ^4.0.8  | Tailwind PostCSS plugin     |
-| [PostCSS](https://postcss.org/)                                               | ^8.4.47 | CSS transformations         |
-| [ESLint](https://eslint.org/)                                                 | ^9.15.0 | Code linting                |
-| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | ^16.0.3 | Next.js ESLint config       |
-| [@types/node](https://www.npmjs.com/package/@types/node)                      | ^25.0.0 | Node.js type definitions    |
-| [@types/react](https://www.npmjs.com/package/@types/react)                    | ^19.0.2 | React type definitions      |
-| [@types/react-dom](https://www.npmjs.com/package/@types/react-dom)            | ^19.0.2 | React DOM type definitions  |
+| [TypeScript](https://www.typescriptlang.org/)                                 | 5.9.3   | Type-safe JavaScript        |
+| [Tailwind CSS](https://tailwindcss.com/)                                      | 4.1.18  | Utility-first CSS framework |
+| [@tailwindcss/postcss](https://tailwindcss.com/)                              | 4.1.18  | Tailwind PostCSS plugin     |
+| [PostCSS](https://postcss.org/)                                               | 8.5.6   | CSS transformations         |
+| [ESLint](https://eslint.org/)                                                 | 9.39.2  | Code linting                |
+| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | 16.1.1  | Next.js ESLint config       |
+| [@types/node](https://www.npmjs.com/package/@types/node)                      | 25.0.3  | Node.js type definitions    |
+| [@types/react](https://www.npmjs.com/package/@types/react)                    | 19.2.7  | React type definitions      |
+| [@types/react-dom](https://www.npmjs.com/package/@types/react-dom)            | 19.2.3  | React DOM type definitions  |
 
 ## 🚀 Getting Started
 
@@ -332,7 +332,7 @@ We welcome contributions! Here's how you can help:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## 📬 Contact & Links
 
