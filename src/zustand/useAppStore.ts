@@ -1,12 +1,15 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist } from "zustand/middleware";
 
 interface AppState {
   shouldListen: boolean;
+  isTranscriptFlipped: boolean;
 }
 
 interface AppActions {
   setShouldListen: (shouldListen: boolean) => void;
+  setIsTranscriptFlipped: (isTranscriptFlipped: boolean) => void;
+  toggleIsTranscriptFlipped: () => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -15,10 +18,26 @@ type AppStore = AppState & AppActions;
 // provides useful debugging capabilities in development
 export const useAppStore = create<AppStore>()(
   devtools(
-    (set) => ({
-      shouldListen: false,
-      setShouldListen: (shouldListen: boolean) => set({ shouldListen }),
-    }),
+    persist(
+      (set) => ({
+        shouldListen: false,
+        isTranscriptFlipped: false,
+        setShouldListen: (shouldListen: boolean) => set({ shouldListen }),
+        setIsTranscriptFlipped: (isTranscriptFlipped: boolean) =>
+          set({ isTranscriptFlipped }),
+        toggleIsTranscriptFlipped: () =>
+          set((state) => ({
+            isTranscriptFlipped: !state.isTranscriptFlipped,
+          })),
+      }),
+      {
+        name: "aidme-preferences",
+        version: 1,
+        partialize: (state) => ({
+          isTranscriptFlipped: state.isTranscriptFlipped,
+        }),
+      }
+    ),
     {
       name: "app-store",
       enabled: process.env.NODE_ENV === "development",

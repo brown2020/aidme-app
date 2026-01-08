@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Mic } from "lucide-react";
+import { Mic, RotateCw } from "lucide-react";
 import { ScaleLoader } from "react-spinners";
 import { useAppStore } from "@/zustand/useAppStore";
 import useListening from "@/hooks/useListening";
@@ -12,7 +12,12 @@ import Instructions from "./Instructions";
 import ListeningStatus from "./ListeningStatus";
 
 export default function Listen() {
-  const { shouldListen } = useAppStore();
+  const {
+    shouldListen,
+    isTranscriptFlipped,
+    toggleIsTranscriptFlipped,
+    setIsTranscriptFlipped,
+  } = useAppStore();
   const { startListening } = useStartListening();
   const {
     transcript,
@@ -27,6 +32,38 @@ export default function Listen() {
   useEffect(() => {
     transcriptEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [transcript, interimTranscript]);
+
+  // Face-to-face (flipped) view is only supported on small/medium screens.
+  // If the user resizes to desktop width, auto-reset so they never get "stuck" flipped.
+  useEffect(() => {
+    const mql = window.matchMedia("(min-width: 1024px)");
+
+    const syncFromMql = () => {
+      if (mql.matches) setIsTranscriptFlipped(false);
+    };
+
+    const handleChange = (event: MediaQueryListEvent) => {
+      if (event.matches) setIsTranscriptFlipped(false);
+    };
+
+    // Ensure correct state on mount
+    syncFromMql();
+
+    const hasModernListener =
+      typeof (mql as unknown as { addEventListener?: unknown }).addEventListener ===
+      "function";
+
+    if (hasModernListener) {
+      mql.addEventListener("change", handleChange);
+      return () => mql.removeEventListener("change", handleChange);
+    }
+
+    // Safari fallback
+    (mql as unknown as MediaQueryList).addListener(handleChange);
+    return () => {
+      (mql as unknown as MediaQueryList).removeListener(handleChange);
+    };
+  }, [setIsTranscriptFlipped]);
 
   const handleRequestPermission = async () => {
     const granted = await startListening();
@@ -78,35 +115,61 @@ export default function Listen() {
     );
   }
 
+  const transcriptWrapperClass = `flex flex-col gap-9 ${
+    isTranscriptFlipped ? "rotate-180 lg:rotate-0 origin-center" : ""
+  }`;
+
   return (
     <main
-      className="flex flex-col w-full h-full space-y-9 text-4xl text-white bg-black font-semibold p-5 tracking-tight overflow-y-auto"
+      className="flex flex-col w-full h-full gap-9 text-4xl text-white bg-black font-semibold p-5 tracking-tight overflow-y-auto"
       aria-live="polite"
       aria-atomic="true"
       aria-relevant="additions text"
     >
       <div className="flex items-center justify-between">
         <h2 className="text-2xl">Transcription</h2>
-        <ListeningStatus isListening={isListening} />
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-md bg-slate-800 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 lg:hidden"
+            onClick={toggleIsTranscriptFlipped}
+            aria-pressed={isTranscriptFlipped}
+            aria-label={
+              isTranscriptFlipped
+                ? "Exit face-to-face transcription view (normal orientation)"
+                : "Enable face-to-face transcription view (upside down)"
+            }
+          >
+            <RotateCw size={16} />
+            Face-to-face
+          </button>
+          <ListeningStatus isListening={isListening} />
+        </div>
       </div>
 
-      {transcript.length > 0 ? (
-        transcript.map((sentence, index) => <p key={index}>{sentence}</p>)
-      ) : (
-        <p className="text-gray-500">Waiting for speech...</p>
-      )}
+      <div className={transcriptWrapperClass}>
+        {transcript.length > 0 ? (
+          transcript.map((sentence, index) => <p key={index}>{sentence}</p>)
+        ) : (
+          <p className="text-gray-500">Waiting for speech...</p>
+        )}
 
-      {interimTranscript && (
-        <div aria-label="Processing speech">{interimTranscript}</div>
-      )}
+        {interimTranscript && (
+          <div aria-label="Processing speech">{interimTranscript}</div>
+        )}
 
-      {!interimTranscript && isListening && (
-        <div aria-label="Listening for speech">
-          <ScaleLoader color="#ffffff" />
-        </div>
-      )}
+        {!interimTranscript && isListening && (
+          <div aria-label="Listening for speech">
+            <ScaleLoader color="#ffffff" />
+          </div>
+        )}
 
-      <div className="h-14 w-full" ref={transcriptEndRef} aria-hidden="true" />
+        <div
+          className="h-14 w-full"
+          ref={transcriptEndRef}
+          aria-hidden="true"
+        />
+      </div>
     </main>
   );
 }
