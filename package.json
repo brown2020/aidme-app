@@ -1,5 +1,5 @@
 {
-  "name": "hearme",
+  "name": "aidme-app",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,12 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "lucide-react": "^0.562.0",
+    "lucide-react": "^0.563.0",
     "next": "^16.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-spinners": "^0.17.0",
     "sharp": "^0.34.1",
+    "sonner": "^2.0.7",
+    "zod": "^4.3.6",
     "zustand": "^5.0.1"
   },
   "devDependencies": {

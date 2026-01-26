@@ -3,7 +3,12 @@
 import { Mic } from "lucide-react";
 import { useStartListening } from "@/hooks/useStartListening";
 import Alert from "./Alert";
+import { Button } from "./ui/Button";
 
+/**
+ * Instructions page component
+ * Shows how to use the app and handles initial permission request
+ */
 export default function Instructions() {
   const { startListening, isSupported, permissionStatus, error } =
     useStartListening({ navigateToHome: true });
@@ -38,16 +43,16 @@ export default function Instructions() {
         <Alert variant="error">{error}</Alert>
       )}
 
-      <button
-        className={`rounded-md text-white px-3 py-2 border mx-auto flex items-center justify-center bg-slate-900 ${
-          isDisabled ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+      <Button
+        variant="secondary"
+        size="lg"
+        className="mx-auto px-6 py-6"
         onClick={startListening}
         disabled={isDisabled}
         aria-label="Start listening"
       >
         <Mic size={60} />
-      </button>
+      </Button>
 
       {permissionStatus === "denied" && (
         <p className="text-sm text-gray-400 mt-4">

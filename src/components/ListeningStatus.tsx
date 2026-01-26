@@ -4,6 +4,15 @@ interface ListeningStatusProps {
   isListening: boolean;
 }
 
+/**
+ * Status indicator showing current listening state
+ * Displays animated icon and label
+ * 
+ * @param isListening - Whether speech recognition is currently active
+ * 
+ * @example
+ * <ListeningStatus isListening={true} />
+ */
 export default function ListeningStatus({ isListening }: ListeningStatusProps) {
   const Icon = isListening ? Mic : MicOff;
   const colorClass = isListening ? "text-green-500" : "text-red-500";

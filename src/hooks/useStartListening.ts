@@ -2,9 +2,11 @@
 
 import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useMicrophonePermission } from "./useMicrophonePermission";
 import { ERROR_MESSAGES } from "@/lib/constants";
+import type { PermissionStatus } from "@/lib/validation";
 
 interface UseStartListeningOptions {
   navigateToHome?: boolean;
@@ -16,12 +18,20 @@ interface UseStartListeningResult {
   toggleListening: () => Promise<void>;
   isListening: boolean;
   isSupported: boolean;
-  permissionStatus: "granted" | "denied" | "prompt" | "unknown";
+  permissionStatus: PermissionStatus;
   error: string | null;
 }
 
 /**
  * Consolidated hook for starting/stopping listening with permission handling
+ * Uses Sonner toast for user feedback instead of browser alerts
+ * 
+ * @param options - Configuration options
+ * @param options.navigateToHome - Whether to navigate to home after starting
+ * @returns Listening control functions and state
+ * 
+ * @example
+ * const { startListening, isListening } = useStartListening({ navigateToHome: true });
  */
 export function useStartListening(
   options: UseStartListeningOptions = {}
@@ -58,7 +68,10 @@ export function useStartListening(
     } else {
       const started = await startListening();
       if (!started && status === "denied") {
-        alert(ERROR_MESSAGES.MIC_NOT_ALLOWED);
+        toast.error(ERROR_MESSAGES.MIC_NOT_ALLOWED, {
+          description: "Please check your browser settings to allow microphone access.",
+          duration: 5000,
+        });
       }
     }
   }, [

@@ -9,6 +9,7 @@ import {
   getIsRecognitionActive,
   setIsRecognitionActive,
 } from "@/lib/speechRecognition";
+import { logger } from "@/lib/logger";
 
 interface UseListeningResult {
   transcript: string[];
@@ -18,6 +19,16 @@ interface UseListeningResult {
   setPermissionError: (error: string | null) => void;
 }
 
+/**
+ * Hook to manage speech recognition lifecycle and transcription state
+ * 
+ * @param shouldListen - Whether speech recognition should be active
+ * @param language - BCP 47 language tag (default: "en-US")
+ * @returns Transcript state, listening status, and permission error handling
+ * 
+ * @example
+ * const { transcript, isListening, permissionError } = useListening(true);
+ */
 export default function useListening(
   shouldListen: boolean,
   language = "en-US"
@@ -56,7 +67,7 @@ export default function useListening(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       if (!message.includes("already started")) {
-        console.error(`Failed to start recognition: ${message}`);
+        logger.error("Failed to start recognition", error);
       }
     }
   }, []);
@@ -66,7 +77,7 @@ export default function useListening(
     try {
       recognition.stop();
     } catch (error) {
-      console.error("Failed to stop recognition:", error);
+      logger.error("Failed to stop recognition", error);
     }
   }, []);
 
@@ -99,9 +110,10 @@ export default function useListening(
       }
       if (event.error === "not-allowed") {
         setPermissionError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
+        logger.warn("Microphone permission not allowed");
         return;
       }
-      console.error(`Speech recognition error: ${event.error}`);
+      logger.error("Speech recognition error", { error: event.error });
       stopRecognition(recognition);
     };
 

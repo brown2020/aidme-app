@@ -8,6 +8,10 @@ interface AlertProps {
   children: React.ReactNode;
 }
 
+/**
+ * Variant configuration mapping for Alert component
+ * Defines icon and styling for each alert type
+ */
 const variantConfig: Record<
   AlertVariant,
   { icon: LucideIcon; styles: string }
@@ -30,6 +34,15 @@ const variantConfig: Record<
   },
 };
 
+/**
+ * Alert component for displaying contextual messages
+ * 
+ * @param variant - Visual style variant (info, success, warning, error)
+ * @param children - Alert message content
+ * 
+ * @example
+ * <Alert variant="error">Something went wrong</Alert>
+ */
 export default function Alert({ variant, children }: AlertProps) {
   const { icon: Icon, styles } = variantConfig[variant];
 

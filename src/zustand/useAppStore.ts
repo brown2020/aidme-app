@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { appStateSchema } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface AppState {
   shouldListen: boolean;
@@ -14,8 +16,16 @@ interface AppActions {
 
 type AppStore = AppState & AppActions;
 
-// Devtools middleware has minimal overhead in production and
-// provides useful debugging capabilities in development
+/**
+ * Global app store using Zustand with persistence and devtools
+ * Uses Zod validation for persisted state to ensure type safety
+ * 
+ * Note: Only persists isTranscriptFlipped (user preference)
+ * shouldListen is intentionally not persisted for security/UX
+ * 
+ * @example
+ * const { shouldListen, setShouldListen } = useAppStore();
+ */
 export const useAppStore = create<AppStore>()(
   devtools(
     persist(
@@ -36,6 +46,20 @@ export const useAppStore = create<AppStore>()(
         partialize: (state) => ({
           isTranscriptFlipped: state.isTranscriptFlipped,
         }),
+        // Validate persisted state on hydration
+        onRehydrateStorage: () => (state) => {
+          if (state) {
+            try {
+              appStateSchema.parse(state);
+              logger.debug("Successfully validated persisted state");
+            } catch (error) {
+              logger.error("Invalid persisted state, resetting to defaults", error);
+              // Reset to defaults if validation fails
+              state.isTranscriptFlipped = false;
+              state.shouldListen = false;
+            }
+          }
+        },
       }
     ),
     {

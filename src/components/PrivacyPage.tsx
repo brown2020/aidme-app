@@ -1,5 +1,9 @@
 import { COMPANY_INFO } from "@/lib/constants";
 
+/**
+ * Privacy Policy page - Server Component
+ * Renders static privacy policy content using company information from constants
+ */
 export default function Privacy() {
   const {
     name: companyName,

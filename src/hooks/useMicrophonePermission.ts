@@ -4,8 +4,11 @@ import {
   requestMicrophonePermission,
 } from "@/lib/speechRecognition";
 import { ERROR_MESSAGES } from "@/lib/constants";
-
-type PermissionStatus = "granted" | "denied" | "prompt" | "unknown";
+import {
+  validatePermissionStatus,
+  type PermissionStatus,
+} from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface UseMicrophonePermissionResult {
   status: PermissionStatus;
@@ -16,6 +19,13 @@ interface UseMicrophonePermissionResult {
 
 /**
  * Hook to manage microphone permission state and requests
+ * Uses Zod validation for type-safe permission status handling
+ * 
+ * @returns Permission status, error state, and request function
+ * 
+ * @example
+ * const { status, requestPermission } = useMicrophonePermission();
+ * if (status === 'denied') showPermissionError();
  */
 export function useMicrophonePermission(): UseMicrophonePermissionResult {
   const [status, setStatus] = useState<PermissionStatus>("unknown");
@@ -32,11 +42,16 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
     navigator.permissions
       ?.query({ name: "microphone" as PermissionName })
       .then((result) => {
-        setStatus(result.state as PermissionStatus);
-        result.onchange = () => setStatus(result.state as PermissionStatus);
+        const validatedStatus = validatePermissionStatus(result.state);
+        setStatus(validatedStatus);
+        result.onchange = () => {
+          const newStatus = validatePermissionStatus(result.state);
+          setStatus(newStatus);
+          logger.debug("Permission status changed", { status: newStatus });
+        };
       })
-      .catch(() => {
-        // Permission API not supported, leave as unknown
+      .catch((error) => {
+        logger.warn("Permission API not supported", error);
       });
   }, []);
 

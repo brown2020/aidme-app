@@ -3,8 +3,17 @@ import { useEffect } from "react";
 /**
  * Sets a CSS custom property `--vh` that represents 1% of the viewport height.
  * This is useful for mobile browsers where 100vh doesn't account for browser chrome.
+ * 
+ * Handles resize and orientation change events to keep the value updated
  *
- * Usage in CSS: height: calc(var(--vh, 1vh) * 100);
+ * @example
+ * // In component
+ * useViewportHeight();
+ * 
+ * // In CSS
+ * .container {
+ *   height: calc(var(--vh, 1vh) * 100);
+ * }
  */
 export function useViewportHeight(): void {
   useEffect(() => {

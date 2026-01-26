@@ -2,6 +2,10 @@ import { COMPANY_INFO } from "@/lib/constants";
 
 const PRIVACY_LINK = "/privacy";
 
+/**
+ * Terms of Service page - Server Component
+ * Renders static terms of service content using company information from constants
+ */
 export default function Terms() {
   const { name: companyName, email: companyEmail, updatedAt } = COMPANY_INFO;
   const privacyLink = PRIVACY_LINK;

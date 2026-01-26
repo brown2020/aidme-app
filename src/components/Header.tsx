@@ -7,8 +7,13 @@ import { useRouter } from "next/navigation";
 import { useStartListening } from "@/hooks/useStartListening";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
 import { LISTENING_TIMEOUT_MS } from "@/lib/constants";
+import { Button } from "./ui/Button";
 import logo from "../assets/aidme.png";
 
+/**
+ * Main application header with microphone control and navigation
+ * Handles auto-stop timeout and viewport height for mobile compatibility
+ */
 export default function Header() {
   const { toggleListening, stopListening, isListening, permissionStatus } =
     useStartListening({ navigateToHome: true });
@@ -34,22 +39,20 @@ export default function Header() {
     };
   }, [isListening, stopListening]);
 
-  const micButtonClass =
-    permissionStatus === "denied"
-      ? "bg-yellow-600"
-      : isListening
-      ? "bg-red-500 animate-pulse"
-      : "bg-slate-900";
+  const micButtonVariant = permissionStatus === "denied" ? "danger" : "ghost";
+  const micButtonClass = isListening ? "animate-pulse bg-red-500" : "";
 
   return (
     <header className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
-      <button
-        className={`rounded-md text-white px-3 py-2 ${micButtonClass}`}
+      <Button
+        variant={micButtonVariant}
+        size="md"
+        className={micButtonClass}
         onClick={toggleListening}
         aria-label={isListening ? "Stop listening" : "Start listening"}
       >
         <MicIcon size={24} />
-      </button>
+      </Button>
 
       <button
         onClick={() => window.ReactNativeWebView?.postMessage("refresh")}
@@ -65,13 +68,14 @@ export default function Header() {
         />
       </button>
 
-      <button
-        className="rounded-md text-white"
+      <Button
+        variant="ghost"
+        size="md"
         onClick={() => router.push("/about")}
         aria-label="Help and instructions"
       >
         <HelpCircleIcon size={32} />
-      </button>
+      </Button>
     </header>
   );
 }

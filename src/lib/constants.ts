@@ -1,3 +1,8 @@
+/**
+ * Application constants
+ * Centralized configuration for timeouts, limits, and messages
+ */
+
 /** Auto-stop listening after this duration (ms) */
 export const LISTENING_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -7,7 +12,10 @@ export const MAX_TRANSCRIPT_LENGTH = 200;
 /** Delay before restarting speech recognition (ms) */
 export const RECOGNITION_RESTART_DELAY_MS = 250;
 
-/** Centralized error messages for consistency */
+/**
+ * Centralized error messages for consistency
+ * All user-facing error messages should be defined here
+ */
 export const ERROR_MESSAGES = {
   BROWSER_NOT_SUPPORTED:
     "Speech recognition is not supported in this browser. Please try Chrome, Edge, or Safari.",

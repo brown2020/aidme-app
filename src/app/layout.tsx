@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { Toaster } from "sonner";
 import "./globals.css";
 import Header from "@/components/Header";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 export const metadata: Metadata = {
   title: "Aid.me",
@@ -45,10 +47,13 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
       </head>
       <body>
-        <div className="flex flex-col w-full h-full bg-black">
-          <Header />
-          <main className="flex-1 overflow-hidden">{children}</main>
-        </div>
+        <ErrorBoundary>
+          <div className="flex flex-col w-full h-full bg-black">
+            <Header />
+            <main className="flex-1 overflow-hidden">{children}</main>
+          </div>
+          <Toaster theme="dark" position="top-center" />
+        </ErrorBoundary>
       </body>
     </html>
   );
