@@ -8,7 +8,6 @@ const PRIVACY_LINK = "/privacy";
  */
 export default function Terms() {
   const { name: companyName, email: companyEmail, updatedAt } = COMPANY_INFO;
-  const privacyLink = PRIVACY_LINK;
   return (
     <div className="text-wrapper">
       <h3>Terms of Service</h3>
@@ -31,7 +30,7 @@ export default function Terms() {
       <p>
         By accessing or using the Services, including access to the Sites, you
         intend and expressly agree to be bound by all the terms and conditions
-        of this Agreement and the Privacy Policy (available at {privacyLink}),
+        of this Agreement and the Privacy Policy (available at {PRIVACY_LINK}),
         which is incorporated by reference. If you do not agree to these terms
         and conditions, you may not use the Services.
       </p>
@@ -311,7 +310,7 @@ export default function Terms() {
         improving the Services, and any other reason described in the Privacy
         Policy. All personal information collected by
         {companyName} is treated in accordance with the{" "}
-        <a href={privacyLink}>Privacy Policy</a>.
+        <a href={PRIVACY_LINK}>Privacy Policy</a>.
       </p>
       <p>
         By agreeing to the terms and conditions in this Agreement and providing

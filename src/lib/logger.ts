@@ -1,33 +1,32 @@
 /**
- * Centralized logging utility for consistent error tracking and debugging
- * 
- * @example
- * logger.error('Failed to start recognition', error);
- * logger.warn('Permission status changed');
+ * Simple logging utility
+ *
+ * - In development: logs to console
+ * - In production: errors still log (visible in browser devtools if needed)
+ *
+ * For production monitoring, integrate with Sentry or similar service.
  */
+
+const isDev = process.env.NODE_ENV === "development";
+
 export const logger = {
+  /** Log errors - always logged (visible in browser devtools) */
   error: (message: string, error?: unknown) => {
-    if (process.env.NODE_ENV === "development") {
-      console.error(`[Error] ${message}`, error);
-    }
-    // TODO: Send to monitoring service (e.g., Sentry) in production
+    console.error(`[Aid.me] ${message}`, error ?? "");
   },
-  
+
+  /** Log warnings - development only */
   warn: (message: string, data?: unknown) => {
-    if (process.env.NODE_ENV === "development") {
-      console.warn(`[Warning] ${message}`, data);
-    }
+    if (isDev) console.warn(`[Aid.me] ${message}`, data ?? "");
   },
-  
+
+  /** Log info - development only */
   info: (message: string, data?: unknown) => {
-    if (process.env.NODE_ENV === "development") {
-      console.info(`[Info] ${message}`, data);
-    }
+    if (isDev) console.info(`[Aid.me] ${message}`, data ?? "");
   },
-  
+
+  /** Log debug - development only */
   debug: (message: string, data?: unknown) => {
-    if (process.env.NODE_ENV === "development") {
-      console.debug(`[Debug] ${message}`, data);
-    }
+    if (isDev) console.debug(`[Aid.me] ${message}`, data ?? "");
   },
 };

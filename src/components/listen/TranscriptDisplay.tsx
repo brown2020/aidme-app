@@ -1,5 +1,4 @@
 import { memo } from "react";
-import { ScaleLoader } from "react-spinners";
 
 interface TranscriptDisplayProps {
   transcript: string[];
@@ -7,6 +6,26 @@ interface TranscriptDisplayProps {
   isListening: boolean;
   isFlipped: boolean;
   transcriptEndRef: React.RefObject<HTMLDivElement | null>;
+}
+
+/**
+ * Simple CSS-based listening indicator (replaces react-spinners)
+ */
+function ListeningIndicator() {
+  return (
+    <div className="flex gap-1 items-end h-8" aria-hidden="true">
+      {[0, 1, 2, 3, 4].map((i) => (
+        <div
+          key={i}
+          className="w-1 bg-white rounded-full animate-pulse"
+          style={{
+            height: `${12 + (i % 3) * 8}px`,
+            animationDelay: `${i * 0.1}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
 }
 
 /**
@@ -37,8 +56,9 @@ export const TranscriptDisplay = memo(function TranscriptDisplay({
       )}
 
       {!interimTranscript && isListening && (
-        <div aria-label="Listening for speech">
-          <ScaleLoader color="#ffffff" />
+        <div role="status" aria-live="polite" aria-label="Listening for speech">
+          <ListeningIndicator />
+          <span className="sr-only">Listening for speech...</span>
         </div>
       )}
 

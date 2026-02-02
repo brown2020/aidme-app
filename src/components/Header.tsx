@@ -39,15 +39,19 @@ export default function Header() {
     };
   }, [isListening, stopListening]);
 
-  const micButtonVariant = permissionStatus === "denied" ? "danger" : "ghost";
-  const micButtonClass = isListening ? "animate-pulse bg-red-500" : "";
+  // Determine button variant based on state
+  // Priority: listening (recording/green) > denied (danger/red) > default (ghost)
+  const getMicButtonVariant = () => {
+    if (isListening) return "recording";
+    if (permissionStatus === "denied") return "danger";
+    return "ghost";
+  };
 
   return (
     <header className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
       <Button
-        variant={micButtonVariant}
+        variant={getMicButtonVariant()}
         size="md"
-        className={micButtonClass}
         onClick={toggleListening}
         aria-label={isListening ? "Stop listening" : "Start listening"}
       >

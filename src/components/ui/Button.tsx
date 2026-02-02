@@ -1,13 +1,11 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
-import { Loader2 } from "lucide-react";
 
-type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "danger" | "ghost" | "recording";
 type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
   size?: ButtonSize;
-  isLoading?: boolean;
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
@@ -15,6 +13,7 @@ const variantStyles: Record<ButtonVariant, string> = {
   secondary: "bg-slate-800 hover:bg-slate-700 text-white",
   danger: "bg-red-600 hover:bg-red-700 text-white",
   ghost: "bg-transparent hover:bg-slate-800 text-white",
+  recording: "bg-green-600 hover:bg-green-700 text-white animate-pulse",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -25,18 +24,12 @@ const sizeStyles: Record<ButtonSize, string> = {
 
 /**
  * Reusable Button component with consistent styling and variants
- * 
- * @example
- * <Button variant="primary" onClick={handleClick}>
- *   Click me
- * </Button>
  */
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
       variant = "primary",
       size = "md",
-      isLoading = false,
       className = "",
       children,
       disabled,
@@ -53,10 +46,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={combinedClassName}
-        disabled={disabled || isLoading}
+        disabled={disabled}
         {...props}
       >
-        {isLoading && <Loader2 size={16} className="animate-spin" />}
         {children}
       </button>
     );

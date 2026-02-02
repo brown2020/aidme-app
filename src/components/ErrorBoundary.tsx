@@ -3,6 +3,7 @@
 import { Component, ReactNode } from "react";
 import { logger } from "@/lib/logger";
 import Alert from "./Alert";
+import { Button } from "./ui/Button";
 
 interface Props {
   children: ReactNode;
@@ -17,11 +18,6 @@ interface State {
 /**
  * Error boundary component for graceful error handling
  * Catches React errors and displays user-friendly fallback UI
- * 
- * @example
- * <ErrorBoundary>
- *   <YourComponent />
- * </ErrorBoundary>
  */
 export class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
@@ -47,23 +43,23 @@ export class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="flex flex-col items-center justify-center w-full h-full p-5 bg-black">
+        <div className="flex flex-col items-center justify-center w-full h-full p-5 bg-black gap-4">
           <Alert variant="error">
             Something went wrong. Please refresh the page to try again.
           </Alert>
           {process.env.NODE_ENV === "development" && this.state.error && (
-            <pre className="mt-4 text-xs text-red-400 overflow-auto max-w-full">
+            <pre className="text-xs text-red-400 overflow-auto max-w-full">
               {this.state.error.message}
               {"\n"}
               {this.state.error.stack}
             </pre>
           )}
-          <button
-            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+          <Button
+            variant="primary"
             onClick={() => window.location.reload()}
           >
             Refresh Page
-          </button>
+          </Button>
         </div>
       );
     }

@@ -15,7 +15,8 @@ interface ListeningStatusProps {
  */
 export default function ListeningStatus({ isListening }: ListeningStatusProps) {
   const Icon = isListening ? Mic : MicOff;
-  const colorClass = isListening ? "text-green-500" : "text-red-500";
+  // Green = actively listening, gray = idle (not an error state)
+  const colorClass = isListening ? "text-green-500" : "text-gray-400";
   const label = isListening ? "Listening" : "Not listening";
 
   return (

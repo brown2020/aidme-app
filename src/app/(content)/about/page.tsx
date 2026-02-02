@@ -1,9 +1,5 @@
-import Instructions from "@/components/Instructions";
+import AboutPage from "@/components/AboutPage";
 
 export default function About() {
-  return <Instructions />;
+  return <AboutPage />;
 }
-
-
-
-

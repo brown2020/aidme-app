@@ -25,6 +25,8 @@ export const ERROR_MESSAGES = {
     "Error requesting microphone permission. Please check your browser settings.",
   MIC_NOT_ALLOWED:
     "Microphone access was denied. Please allow microphone access in your browser settings.",
+  NETWORK_ERROR:
+    "Speech recognition service unavailable. Please check your internet connection and try again.",
 } as const;
 
 /** Company information for legal pages */

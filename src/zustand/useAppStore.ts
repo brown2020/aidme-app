@@ -41,7 +41,7 @@ export const useAppStore = create<AppStore>()(
           })),
       }),
       {
-        name: "aidme-preferences",
+        name: "aidme-app_preferences_v1",
         version: 1,
         partialize: (state) => ({
           isTranscriptFlipped: state.isTranscriptFlipped,
