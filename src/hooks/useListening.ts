@@ -48,6 +48,7 @@ export default function useListening(
 
       const text = result[0].transcript.trim();
       if (result.isFinal) {
+        if (!text) continue;
         const finalText = text.charAt(0).toUpperCase() + text.slice(1) + ".";
         setTranscript((prev) =>
           [...prev, finalText].slice(-MAX_TRANSCRIPT_LENGTH)

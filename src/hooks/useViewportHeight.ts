@@ -34,7 +34,3 @@ export function useViewportHeight(): void {
     };
   }, []);
 }
-
-
-
-

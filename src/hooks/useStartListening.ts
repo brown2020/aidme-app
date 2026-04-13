@@ -94,6 +94,3 @@ export function useStartListening(
   };
 }
 
-
-
-

@@ -38,16 +38,9 @@ export const COMPANY_INFO = {
   updatedAt: "November 1, 2023",
 } as const;
 
-/** Type for COMPANY_INFO */
-export type CompanyInfo = typeof COMPANY_INFO;
-
 /** Navigation links */
 export const NAV_LINKS = [
   { title: "About", href: "/about" },
   { title: "Privacy", href: "/privacy" },
   { title: "Terms", href: "/terms" },
 ] as const;
-
-
-
-

@@ -30,13 +30,13 @@ interface UseMicrophonePermissionResult {
 export function useMicrophonePermission(): UseMicrophonePermissionResult {
   const [status, setStatus] = useState<PermissionStatus>("unknown");
   const [error, setError] = useState<string | null>(null);
-  const [isSupported, setIsSupported] = useState(true);
+  const [isSupported, setIsSupported] = useState(() =>
+    typeof window === "undefined" ? true : isSpeechRecognitionSupported()
+  );
 
-  // Check browser support and initial permission status
+  // Query initial permission status
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    setIsSupported(isSpeechRecognitionSupported());
 
     // Query current permission status if API is available
     navigator.permissions
@@ -87,6 +87,4 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
     requestPermission,
   };
 }
-
-
 

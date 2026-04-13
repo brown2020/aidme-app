@@ -56,7 +56,3 @@ export default function Alert({ variant, children }: AlertProps) {
     </div>
   );
 }
-
-
-
-
