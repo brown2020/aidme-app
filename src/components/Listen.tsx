@@ -47,9 +47,13 @@ export default function Listen() {
   }, [isDesktop, setIsTranscriptFlipped]);
 
   const handleRequestPermission = async () => {
-    const granted = await startListening();
-    if (granted) {
-      setPermissionError(null);
+    try {
+      const granted = await startListening();
+      if (granted) {
+        setPermissionError(null);
+      }
+    } catch {
+      // Permission request failed - error state is managed by useStartListening
     }
   };
 

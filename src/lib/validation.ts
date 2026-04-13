@@ -23,8 +23,6 @@ export const appStateSchema = z.object({
   isTranscriptFlipped: z.boolean(),
 });
 
-export type AppStateValidated = z.infer<typeof appStateSchema>;
-
 /**
  * Safely validates permission status
  */
