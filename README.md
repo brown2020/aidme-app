@@ -39,7 +39,8 @@ Aid.me is also available as a native app on the [Apple App Store](https://apps.a
 | [React DOM](https://react.dev/)                          | 19.2.3   | React DOM renderer              |
 | [Zustand](https://zustand-demo.pmnd.rs/)                 | 5.0.9    | Lightweight state management    |
 | [Lucide React](https://lucide.dev/)                      | 0.562.0  | Beautiful icon library          |
-| [React Spinners](https://www.davidhu.io/react-spinners/) | 0.17.0   | Loading indicators              |
+| [Sonner](https://sonner.emilkowal.ski/)                  | 2.0.7    | Toast notifications             |
+| [Zod](https://zod.dev/)                                  | 4.x      | Runtime validation              |
 | [Sharp](https://sharp.pixelplumbing.com/)                | 0.34.5   | Image optimization for Next.js  |
 
 ### Dev Dependencies
@@ -95,7 +96,7 @@ Navigate to [http://localhost:3000](http://localhost:3000)
 | `npm run dev`   | Start development server with hot reload |
 | `npm run build` | Create optimized production build        |
 | `npm run start` | Start production server                  |
-| `npm run lint`  | Run ESLint for code quality              |
+| `npm run lint`  | Run ESLint (`eslint .`)                  |
 
 ## 📁 Project Structure
 
@@ -299,36 +300,35 @@ This is normal behavior — the Web Speech API stops after periods of silence. A
 - Speak clearly and at a moderate pace
 - Ensure your microphone is working properly
 
+## 📚 Documentation
+
+| Document | Purpose |
+| -------- | ------- |
+| [AGENTS.md](./AGENTS.md) | Agent instructions, architecture, git workflow (`main` / `dev`) |
+| [spec.md](./spec.md) | Product spec, current state, and ordered roadmap |
+
 ## 🤝 Contributing
 
 We welcome contributions! Here's how you can help:
 
 1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
+2. **Work** on the `dev` branch (or branch from `dev` per maintainer preference)
+3. **Commit** your changes with a clear message
+4. **Open** a Pull Request targeting `dev` or `main` as requested by maintainers
 
 ### Development Guidelines
 
+- Read [AGENTS.md](./AGENTS.md) before making changes
 - Follow the existing code style (TypeScript, functional components)
 - Use meaningful commit messages
 - Add comments for complex logic
 - Test across different browsers
 - Ensure accessibility is maintained
-- Run `npm run lint` before committing
+- Run `npm run lint` and `npm run build` before committing
 
-### Ideas for Contribution
+### Roadmap
 
-- [ ] Add language selection for speech recognition
-- [ ] Implement transcript export (text/PDF/clipboard)
-- [ ] Add keyboard shortcuts (space to toggle, etc.)
-- [ ] Create transcript history with local storage
-- [ ] Improve mobile Safari compatibility
-- [ ] Add speech-to-text alternatives for Firefox (e.g., Whisper)
-- [ ] Implement font size controls for accessibility
-- [ ] Add transcript timestamps
-- [ ] Create shareable transcript links
+Prioritized product milestones and acceptance criteria live in **[spec.md](./spec.md)**. Do not duplicate roadmap items here.
 
 ## 📄 License
 
