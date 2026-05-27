@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:ci": "CI=true vitest run"
   },
   "dependencies": {
     "lucide-react": "^1.8.0",
@@ -28,7 +30,9 @@
     "postcss": "^8.5.10",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
-    "eslint-config-next": "latest"
+    "eslint-config-next": "^16.2.6",
+    "vitest": "^4.0.18",
+    "jsdom": "^28.1.0"
   },
   "engines": {
     "node": "22.x"

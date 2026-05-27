@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useAppStore } from "@/zustand/useAppStore";
@@ -17,6 +17,7 @@ interface UseStartListeningResult {
   stopListening: () => void;
   toggleListening: () => Promise<void>;
   isListening: boolean;
+  isStarting: boolean;
   isSupported: boolean;
   permissionStatus: PermissionStatus;
   error: string | null;
@@ -24,14 +25,6 @@ interface UseStartListeningResult {
 
 /**
  * Consolidated hook for starting/stopping listening with permission handling
- * Uses Sonner toast for user feedback instead of browser alerts
- * 
- * @param options - Configuration options
- * @param options.navigateToHome - Whether to navigate to home after starting
- * @returns Listening control functions and state
- * 
- * @example
- * const { startListening, isListening } = useStartListening({ navigateToHome: true });
  */
 export function useStartListening(
   options: UseStartListeningOptions = {}
@@ -41,6 +34,8 @@ export function useStartListening(
   const { status, error, isSupported, requestPermission } =
     useMicrophonePermission();
   const router = useRouter();
+  const [isStarting, setIsStarting] = useState(false);
+  const toggleInFlightRef = useRef(false);
 
   const startListening = useCallback(async (): Promise<boolean> => {
     if (!isSupported) return false;
@@ -60,19 +55,29 @@ export function useStartListening(
   }, [setShouldListen]);
 
   const toggleListening = useCallback(async () => {
-    if (shouldListen) {
-      stopListening();
-      if (navigateToHome) {
-        router.push("/");
+    if (toggleInFlightRef.current) return;
+    toggleInFlightRef.current = true;
+    setIsStarting(true);
+
+    try {
+      if (shouldListen) {
+        stopListening();
+        if (navigateToHome) {
+          router.push("/");
+        }
+      } else {
+        const started = await startListening();
+        if (!started && status === "denied") {
+          toast.error(ERROR_MESSAGES.MIC_NOT_ALLOWED, {
+            description:
+              "Please check your browser settings to allow microphone access.",
+            duration: 5000,
+          });
+        }
       }
-    } else {
-      const started = await startListening();
-      if (!started && status === "denied") {
-        toast.error(ERROR_MESSAGES.MIC_NOT_ALLOWED, {
-          description: "Please check your browser settings to allow microphone access.",
-          duration: 5000,
-        });
-      }
+    } finally {
+      toggleInFlightRef.current = false;
+      setIsStarting(false);
     }
   }, [
     shouldListen,
@@ -88,9 +93,9 @@ export function useStartListening(
     stopListening,
     toggleListening,
     isListening: shouldListen,
+    isStarting,
     isSupported,
     permissionStatus: status,
     error,
   };
 }
-

@@ -84,6 +84,14 @@ export function setIsRecognitionActive(active: boolean): void {
  *
  * @returns Promise resolving to true if permission granted
  */
+/**
+ * Reset module state — for tests only.
+ */
+export function resetSpeechRecognitionModuleState(): void {
+  recognitionInstance = null;
+  recognitionState = "idle";
+}
+
 export async function requestMicrophonePermission(): Promise<boolean> {
   if (typeof navigator === "undefined") {
     logger.warn("Navigator not available (SSR context)");

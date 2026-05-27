@@ -9,6 +9,7 @@ import {
   type PermissionStatus,
 } from "@/lib/validation";
 import { logger } from "@/lib/logger";
+import { useAppStore } from "@/zustand/useAppStore";
 
 interface UseMicrophonePermissionResult {
   status: PermissionStatus;
@@ -18,47 +19,61 @@ interface UseMicrophonePermissionResult {
 }
 
 /**
- * Hook to manage microphone permission state and requests
- * Uses Zod validation for type-safe permission status handling
- * 
- * @returns Permission status, error state, and request function
- * 
- * @example
- * const { status, requestPermission } = useMicrophonePermission();
- * if (status === 'denied') showPermissionError();
+ * Hook to manage microphone permission state and requests.
+ * Status and errors are stored in Zustand so Header and Listen stay in sync.
  */
 export function useMicrophonePermission(): UseMicrophonePermissionResult {
-  const [status, setStatus] = useState<PermissionStatus>("unknown");
-  const [error, setError] = useState<string | null>(null);
-  const [isSupported, setIsSupported] = useState(() =>
-    typeof window === "undefined" ? true : isSpeechRecognitionSupported()
-  );
+  const {
+    micPermissionStatus: status,
+    micPermissionError: error,
+    setMicPermissionStatus: setStatus,
+    setMicPermissionError: setError,
+  } = useAppStore();
 
-  // Query initial permission status
+  const [isSupported, setIsSupported] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return isSpeechRecognitionSupported();
+  });
+
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    // Query current permission status if API is available
+    setIsSupported(isSpeechRecognitionSupported());
+
+    let removeChangeListener: (() => void) | undefined;
+
     navigator.permissions
       ?.query({ name: "microphone" as PermissionName })
       .then((result) => {
         const validatedStatus = validatePermissionStatus(result.state);
         setStatus(validatedStatus);
-        result.onchange = () => {
+
+        const handleChange = () => {
           const newStatus = validatePermissionStatus(result.state);
           setStatus(newStatus);
+          if (newStatus === "granted") {
+            setError(null);
+          }
           logger.debug("Permission status changed", { status: newStatus });
         };
+
+        result.addEventListener("change", handleChange);
+        removeChangeListener = () =>
+          result.removeEventListener("change", handleChange);
       })
-      .catch((error) => {
-        logger.warn("Permission API not supported", error);
+      .catch((err) => {
+        logger.warn("Permission API not supported", err);
       });
-  }, []);
+
+    return () => {
+      removeChangeListener?.();
+    };
+  }, [setStatus, setError]);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const supported = isSpeechRecognitionSupported();
+    setIsSupported(supported);
     if (!supported) {
-      setIsSupported(false);
       setError(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
       return false;
     }
@@ -74,11 +89,11 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
       setStatus("granted");
       setError(null);
       return true;
-    } else {
-      setError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
-      return false;
     }
-  }, [status]);
+
+    setError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
+    return false;
+  }, [status, setStatus, setError]);
 
   return {
     status,
@@ -87,4 +102,3 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
     requestPermission,
   };
 }
-

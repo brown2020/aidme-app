@@ -15,8 +15,13 @@ import logo from "../assets/aidme.png";
  * Handles auto-stop timeout and viewport height for mobile compatibility
  */
 export default function Header() {
-  const { toggleListening, stopListening, isListening, permissionStatus } =
-    useStartListening({ navigateToHome: true });
+  const {
+    toggleListening,
+    stopListening,
+    isListening,
+    isStarting,
+    permissionStatus,
+  } = useStartListening({ navigateToHome: true });
   const router = useRouter();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -53,7 +58,9 @@ export default function Header() {
         variant={getMicButtonVariant()}
         size="md"
         onClick={toggleListening}
+        disabled={isStarting}
         aria-label={isListening ? "Stop listening" : "Start listening"}
+        aria-busy={isStarting}
       >
         <MicIcon size={24} />
       </Button>

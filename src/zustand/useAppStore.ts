@@ -1,17 +1,22 @@
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { appStateSchema } from "@/lib/validation";
+import { appStateSchema, type PermissionStatus } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 interface AppState {
   shouldListen: boolean;
   isTranscriptFlipped: boolean;
+  /** Shared across hooks/components — not persisted */
+  micPermissionStatus: PermissionStatus;
+  micPermissionError: string | null;
 }
 
 interface AppActions {
   setShouldListen: (shouldListen: boolean) => void;
   setIsTranscriptFlipped: (isTranscriptFlipped: boolean) => void;
   toggleIsTranscriptFlipped: () => void;
+  setMicPermissionStatus: (status: PermissionStatus) => void;
+  setMicPermissionError: (error: string | null) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -32,6 +37,8 @@ export const useAppStore = create<AppStore>()(
       (set) => ({
         shouldListen: false,
         isTranscriptFlipped: false,
+        micPermissionStatus: "unknown",
+        micPermissionError: null,
         setShouldListen: (shouldListen: boolean) => set({ shouldListen }),
         setIsTranscriptFlipped: (isTranscriptFlipped: boolean) =>
           set({ isTranscriptFlipped }),
@@ -39,6 +46,10 @@ export const useAppStore = create<AppStore>()(
           set((state) => ({
             isTranscriptFlipped: !state.isTranscriptFlipped,
           })),
+        setMicPermissionStatus: (micPermissionStatus: PermissionStatus) =>
+          set({ micPermissionStatus }),
+        setMicPermissionError: (micPermissionError: string | null) =>
+          set({ micPermissionError }),
       }),
       {
         name: "aidme-app_preferences_v1",

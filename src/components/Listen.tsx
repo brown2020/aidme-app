@@ -67,8 +67,8 @@ export default function Listen() {
     return <BrowserNotSupportedState />;
   }
 
-  // Show permission error with retry option
-  if (permissionError) {
+  // Full-screen error only while actively listening or before any transcript exists
+  if (permissionError && (shouldListen || transcript.length === 0)) {
     return (
       <PermissionErrorState
         error={permissionError}

@@ -46,7 +46,9 @@ export const TranscriptDisplay = memo(function TranscriptDisplay({
   return (
     <div className={wrapperClass}>
       {transcript.length > 0 ? (
-        transcript.map((sentence, index) => <p key={index}>{sentence}</p>)
+        transcript.map((sentence, index) => (
+          <p key={`${index}-${sentence}`}>{sentence}</p>
+        ))
       ) : (
         <p className="text-gray-500">Waiting for speech...</p>
       )}

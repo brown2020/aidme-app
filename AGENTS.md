@@ -83,7 +83,7 @@ All logic runs in the browser after static/SSR shell delivery:
 | `/privacy` | `PrivacyPage` | Static policy |
 | `/terms` | `TermsPage` | Static terms |
 
-**Not present:** `app/api/*`, Server Actions, middleware, Firebase, databases, cron, queues, background workers.
+**Not present:** `app/api/*`, Server Actions, `middleware.ts`, `proxy.ts`, auth, Firebase, databases, cron, queues, background workers. All routes are public by design.
 
 ## Key features (shipped today)
 
@@ -108,15 +108,17 @@ npm run dev          # Dev server http://localhost:3000
 npm run build        # Production build + TypeScript check (Next)
 npm run start        # Serve production build
 npm run lint         # ESLint (eslint .)
+npm run test         # Vitest unit tests (single run)
+npm run test:ci      # Vitest with CI=true
 ```
 
 ### Canonical validation (run before committing)
 
 ```bash
-npm run lint && npm run build
+npm run lint && npm run test:ci && npm run build
 ```
 
-There is **no** `test` or `typecheck` script. `npm run build` is the typecheck gate.
+There is **no** standalone `typecheck` script. `npm run build` is the TypeScript gate.
 
 ### Non-interactive testing rules
 

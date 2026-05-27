@@ -35,9 +35,26 @@ export default function useListening(
   const [isListening, setIsListening] = useState(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
 
-  // Refs for cleanup race condition prevention
   const restartTimeoutRef = useRef<number | null>(null);
   const isMountedRef = useRef(true);
+  const shouldListenRef = useRef(shouldListen);
+  const permissionErrorRef = useRef(permissionError);
+
+  useEffect(() => {
+    shouldListenRef.current = shouldListen;
+  }, [shouldListen]);
+
+  useEffect(() => {
+    permissionErrorRef.current = permissionError;
+  }, [permissionError]);
+
+  // Clear blocking errors when listening stops so transcript remains visible
+  useEffect(() => {
+    if (!shouldListen) {
+      setPermissionError(null);
+      setInterimTranscript("");
+    }
+  }, [shouldListen]);
 
   const handleResult = useCallback((event: SpeechRecognitionEvent) => {
     let newInterimTranscript = "";
@@ -82,6 +99,15 @@ export default function useListening(
     }
   }, []);
 
+  const canRestartListening = useCallback(() => {
+    return (
+      isMountedRef.current &&
+      shouldListenRef.current &&
+      !permissionErrorRef.current &&
+      !getIsRecognitionActive()
+    );
+  }, []);
+
   // Main recognition effect
   useEffect(() => {
     if (typeof window === "undefined" || permissionError) return;
@@ -89,33 +115,28 @@ export default function useListening(
     const recognition = getSpeechRecognitionInstance(language);
     if (!recognition) return;
 
-    // Track mount state for this effect instance
     isMountedRef.current = true;
 
     recognition.onresult = handleResult;
 
     recognition.onerror = (event) => {
-      // No speech detected - just restart
       if (event.error === "no-speech") {
         stopRecognition(recognition);
         return;
       }
 
-      // Permission denied
       if (event.error === "not-allowed") {
         setPermissionError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
         logger.warn("Microphone permission not allowed");
         return;
       }
 
-      // Network or service errors - show user-visible error
       if (event.error === "network" || event.error === "service-not-allowed") {
         setPermissionError(ERROR_MESSAGES.NETWORK_ERROR);
         logger.error("Speech recognition network error", { error: event.error });
         return;
       }
 
-      // Other errors - log and stop
       logger.error("Speech recognition error", { error: event.error });
       stopRecognition(recognition);
     };
@@ -129,26 +150,18 @@ export default function useListening(
       setIsRecognitionActive(false);
       setIsListening(false);
 
-      // Only schedule restart if still mounted and should listen
-      if (isMountedRef.current && shouldListen && !permissionError) {
-        // Clear any existing timeout
-        if (restartTimeoutRef.current !== null) {
-          clearTimeout(restartTimeoutRef.current);
-        }
+      if (!canRestartListening()) return;
 
-        restartTimeoutRef.current = window.setTimeout(() => {
-          restartTimeoutRef.current = null;
-          // Double-check mount state and conditions before restarting
-          if (
-            isMountedRef.current &&
-            shouldListen &&
-            !permissionError &&
-            !getIsRecognitionActive()
-          ) {
-            startRecognition(recognition);
-          }
-        }, RECOGNITION_RESTART_DELAY_MS);
+      if (restartTimeoutRef.current !== null) {
+        clearTimeout(restartTimeoutRef.current);
       }
+
+      restartTimeoutRef.current = window.setTimeout(() => {
+        restartTimeoutRef.current = null;
+        if (canRestartListening()) {
+          startRecognition(recognition);
+        }
+      }, RECOGNITION_RESTART_DELAY_MS);
     };
 
     if (shouldListen) {
@@ -158,16 +171,13 @@ export default function useListening(
     }
 
     return () => {
-      // Mark as unmounted to prevent restart after cleanup
       isMountedRef.current = false;
 
-      // Clear pending restart
       if (restartTimeoutRef.current !== null) {
         clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = null;
       }
 
-      // Stop recognition
       try {
         recognition.stop();
       } catch {
@@ -182,6 +192,7 @@ export default function useListening(
     handleResult,
     startRecognition,
     stopRecognition,
+    canRestartListening,
   ]);
 
   return {
