@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import {
   isSpeechRecognitionSupported,
   requestMicrophonePermission,
@@ -10,11 +10,13 @@ import {
 } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 import { useAppStore } from "@/zustand/useAppStore";
+import { useSpeechRecognitionSupported } from "./useSpeechRecognitionSupported";
 
 interface UseMicrophonePermissionResult {
   status: PermissionStatus;
   error: string | null;
-  isSupported: boolean;
+  /** `null` until mounted; then whether the browser supports speech recognition */
+  isSupported: boolean | null;
   requestPermission: () => Promise<boolean>;
 }
 
@@ -30,15 +32,10 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
     setMicPermissionError: setError,
   } = useAppStore();
 
-  const [isSupported, setIsSupported] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return isSpeechRecognitionSupported();
-  });
+  const isSupported = useSpeechRecognitionSupported();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-
-    setIsSupported(isSpeechRecognitionSupported());
 
     let removeChangeListener: (() => void) | undefined;
 
@@ -72,7 +69,6 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const supported = isSpeechRecognitionSupported();
-    setIsSupported(supported);
     if (!supported) {
       setError(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
       return false;

@@ -5,7 +5,7 @@ import { useAppStore } from "@/zustand/useAppStore";
 import useListening from "@/hooks/useListening";
 import { useStartListening } from "@/hooks/useStartListening";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { isSpeechRecognitionSupported } from "@/lib/speechRecognition";
+import { useSpeechRecognitionSupported } from "@/hooks/useSpeechRecognitionSupported";
 import Instructions from "./Instructions";
 import { BrowserNotSupportedState } from "./listen/BrowserNotSupportedState";
 import { PermissionErrorState } from "./listen/PermissionErrorState";
@@ -35,6 +35,7 @@ export default function Listen() {
   } = useListening(shouldListen, recognitionLanguage);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const isSpeechSupported = useSpeechRecognitionSupported();
 
   // Auto-scroll to latest transcript
   useEffect(() => {
@@ -65,7 +66,7 @@ export default function Listen() {
   }
 
   // Show browser error with instructions fallback
-  if (!isSpeechRecognitionSupported()) {
+  if (isSpeechSupported === false) {
     return <BrowserNotSupportedState />;
   }
 

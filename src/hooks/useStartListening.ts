@@ -18,7 +18,7 @@ interface UseStartListeningResult {
   toggleListening: () => Promise<void>;
   isListening: boolean;
   isStarting: boolean;
-  isSupported: boolean;
+  isSupported: boolean | null;
   permissionStatus: PermissionStatus;
   error: string | null;
 }
@@ -38,7 +38,7 @@ export function useStartListening(
   const toggleInFlightRef = useRef(false);
 
   const startListening = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) return false;
+    if (isSupported === false) return false;
 
     const granted = await requestPermission();
     if (!granted) return false;

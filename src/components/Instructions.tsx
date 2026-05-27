@@ -14,7 +14,7 @@ export default function Instructions() {
   const { startListening, isSupported, permissionStatus, error } =
     useStartListening({ navigateToHome: true });
 
-  const isDisabled = !isSupported;
+  const isDisabled = isSupported !== true;
 
   return (
     <main className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg overflow-y-auto">
@@ -28,7 +28,7 @@ export default function Instructions() {
 
       <LanguageSelect variant="onboarding" />
 
-      {!isSupported && (
+      {isSupported === false && (
         <Alert variant="warning">
           Speech recognition is not supported in this browser. For best results,
           please use Chrome, Edge, or Safari.
