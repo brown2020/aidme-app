@@ -1,10 +1,13 @@
 import { memo } from "react";
+import { getCaptionTextClassName } from "@/lib/captionSize";
+import type { CaptionSize } from "@/lib/validation";
 
 interface TranscriptDisplayProps {
   transcript: string[];
   interimTranscript: string;
   isListening: boolean;
   isFlipped: boolean;
+  captionSize: CaptionSize;
   transcriptEndRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -37,9 +40,11 @@ export const TranscriptDisplay = memo(function TranscriptDisplay({
   interimTranscript,
   isListening,
   isFlipped,
+  captionSize,
   transcriptEndRef,
 }: TranscriptDisplayProps) {
-  const wrapperClass = `flex flex-col gap-9 ${
+  const textClassName = getCaptionTextClassName(captionSize);
+  const wrapperClass = `flex flex-col gap-9 w-full min-w-0 ${textClassName} ${
     isFlipped ? "rotate-180 lg:rotate-0 origin-center" : ""
   }`;
 
@@ -65,7 +70,7 @@ export const TranscriptDisplay = memo(function TranscriptDisplay({
       )}
 
       <div
-        className="h-14 w-full"
+        className="h-14 w-full shrink-0"
         ref={transcriptEndRef}
         aria-hidden="true"
       />

@@ -2,7 +2,9 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import {
   appStateSchema,
+  DEFAULT_CAPTION_SIZE_VALIDATED,
   DEFAULT_RECOGNITION_LANGUAGE_VALIDATED,
+  type CaptionSize,
   type PermissionStatus,
   type RecognitionLanguage,
 } from "@/lib/validation";
@@ -12,6 +14,7 @@ interface AppState {
   shouldListen: boolean;
   isTranscriptFlipped: boolean;
   recognitionLanguage: RecognitionLanguage;
+  captionSize: CaptionSize;
   /** Shared across hooks/components — not persisted */
   micPermissionStatus: PermissionStatus;
   micPermissionError: string | null;
@@ -21,6 +24,7 @@ interface AppActions {
   setShouldListen: (shouldListen: boolean) => void;
   setIsTranscriptFlipped: (isTranscriptFlipped: boolean) => void;
   setRecognitionLanguage: (recognitionLanguage: RecognitionLanguage) => void;
+  setCaptionSize: (captionSize: CaptionSize) => void;
   toggleIsTranscriptFlipped: () => void;
   setMicPermissionStatus: (status: PermissionStatus) => void;
   setMicPermissionError: (error: string | null) => void;
@@ -38,6 +42,7 @@ export const useAppStore = create<AppStore>()(
         shouldListen: false,
         isTranscriptFlipped: false,
         recognitionLanguage: DEFAULT_RECOGNITION_LANGUAGE_VALIDATED,
+        captionSize: DEFAULT_CAPTION_SIZE_VALIDATED,
         micPermissionStatus: "unknown",
         micPermissionError: null,
         setShouldListen: (shouldListen: boolean) => set({ shouldListen }),
@@ -45,6 +50,7 @@ export const useAppStore = create<AppStore>()(
           set({ isTranscriptFlipped }),
         setRecognitionLanguage: (recognitionLanguage: RecognitionLanguage) =>
           set({ recognitionLanguage }),
+        setCaptionSize: (captionSize: CaptionSize) => set({ captionSize }),
         toggleIsTranscriptFlipped: () =>
           set((state) => ({
             isTranscriptFlipped: !state.isTranscriptFlipped,
@@ -60,6 +66,7 @@ export const useAppStore = create<AppStore>()(
         partialize: (state) => ({
           isTranscriptFlipped: state.isTranscriptFlipped,
           recognitionLanguage: state.recognitionLanguage,
+          captionSize: state.captionSize,
         }),
         onRehydrateStorage: () => (state) => {
           if (state) {
@@ -72,6 +79,7 @@ export const useAppStore = create<AppStore>()(
               state.shouldListen = false;
               state.recognitionLanguage =
                 DEFAULT_RECOGNITION_LANGUAGE_VALIDATED;
+              state.captionSize = DEFAULT_CAPTION_SIZE_VALIDATED;
             }
           }
         },

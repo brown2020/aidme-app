@@ -4,6 +4,7 @@ import { Button } from "../ui/Button";
 import ListeningStatus from "../ListeningStatus";
 import { LanguageSelect } from "./LanguageSelect";
 import { CopyTranscriptButton } from "./CopyTranscriptButton";
+import { CaptionSizeSelect } from "./CaptionSizeSelect";
 
 interface TranscriptHeaderProps {
   transcript: string[];
@@ -29,6 +30,7 @@ export const TranscriptHeader = memo(function TranscriptHeader({
       <h2 className="text-2xl">Transcription</h2>
       <div className="flex flex-wrap items-center gap-3">
         <LanguageSelect variant="toolbar" />
+        <CaptionSizeSelect />
         <CopyTranscriptButton
           transcript={transcript}
           interimTranscript={interimTranscript}

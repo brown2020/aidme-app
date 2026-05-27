@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   appStateSchema,
+  captionSizeSchema,
   permissionStatusSchema,
   recognitionLanguageSchema,
+  validateCaptionSize,
   validatePermissionStatus,
   validateRecognitionLanguage,
 } from "./validation";
@@ -42,12 +44,30 @@ describe("validateRecognitionLanguage", () => {
   });
 });
 
+describe("captionSizeSchema", () => {
+  it("accepts supported sizes", () => {
+    expect(captionSizeSchema.safeParse("large").success).toBe(true);
+    expect(captionSizeSchema.safeParse("xlarge").success).toBe(true);
+  });
+
+  it("rejects invalid sizes", () => {
+    expect(captionSizeSchema.safeParse("huge").success).toBe(false);
+  });
+});
+
+describe("validateCaptionSize", () => {
+  it("falls back to default for invalid values", () => {
+    expect(validateCaptionSize("invalid")).toBe("default");
+  });
+});
+
 describe("appStateSchema", () => {
   it("validates store shape", () => {
     const result = appStateSchema.safeParse({
       shouldListen: false,
       isTranscriptFlipped: true,
       recognitionLanguage: "fr-FR",
+      captionSize: "large",
     });
     expect(result.success).toBe(true);
   });

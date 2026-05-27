@@ -3,6 +3,8 @@
  */
 import { z } from "zod";
 import {
+  CAPTION_SIZES,
+  DEFAULT_CAPTION_SIZE,
   DEFAULT_RECOGNITION_LANGUAGE,
   RECOGNITION_LANGUAGES,
 } from "./constants";
@@ -21,6 +23,18 @@ export type RecognitionLanguage = z.infer<typeof recognitionLanguageSchema>;
 
 export const DEFAULT_RECOGNITION_LANGUAGE_VALIDATED =
   recognitionLanguageSchema.parse(DEFAULT_RECOGNITION_LANGUAGE);
+
+const captionSizeValues = CAPTION_SIZES.map((s) => s.value) as [
+  string,
+  ...string[],
+];
+
+export const captionSizeSchema = z.enum(captionSizeValues);
+
+export type CaptionSize = z.infer<typeof captionSizeSchema>;
+
+export const DEFAULT_CAPTION_SIZE_VALIDATED =
+  captionSizeSchema.parse(DEFAULT_CAPTION_SIZE);
 
 /**
  * Permission status schema
@@ -41,6 +55,7 @@ export const appStateSchema = z.object({
   shouldListen: z.boolean(),
   isTranscriptFlipped: z.boolean(),
   recognitionLanguage: recognitionLanguageSchema,
+  captionSize: captionSizeSchema,
 });
 
 /**
@@ -61,4 +76,12 @@ export function validateRecognitionLanguage(
 ): RecognitionLanguage {
   const result = recognitionLanguageSchema.safeParse(language);
   return result.success ? result.data : DEFAULT_RECOGNITION_LANGUAGE_VALIDATED;
+}
+
+/**
+ * Safely validates caption size, falling back to default
+ */
+export function validateCaptionSize(size: unknown): CaptionSize {
+  const result = captionSizeSchema.safeParse(size);
+  return result.success ? result.data : DEFAULT_CAPTION_SIZE_VALIDATED;
 }

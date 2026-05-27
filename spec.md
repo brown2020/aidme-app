@@ -67,6 +67,7 @@ Single-page transcription experience at `/` with global header (mic, logo, help)
 | React Native refresh bridge | Shipped | Logo click → `postMessage("refresh")` |
 | Language selection UI | **Shipped** | `LanguageSelect` + persisted `recognitionLanguage` in Zustand |
 | Transcript copy to clipboard | **Shipped** | `CopyTranscriptButton` + `lib/transcript.ts` |
+| Adjustable caption text size | **Shipped** | `CaptionSizeSelect` + persisted `captionSize` |
 | Transcript persistence | **Not shipped** | In-memory only; refresh clears |
 | User accounts / sync | **Not shipped** | By design |
 | Firefox transcription | **Not supported** | No Web Speech API |
@@ -168,17 +169,19 @@ Ordered by user impact and dependency. Each item is sized for **one focused comm
 
 ---
 
-### R3 — Adjustable caption text size
+### R3 — Adjustable caption text size ✅
+
+**Status:** Completed (dev, 2026-05-26)
 
 **User value:** Low vision users can read captions comfortably at distance.
 
 **Acceptance criteria:**
 
-- At least three sizes (e.g. default / large / extra-large) affecting transcript and interim text
-- Preference persisted in Zustand like flip mode
-- Layout remains usable on small phones without horizontal scroll
+- [x] At least three sizes (e.g. default / large / extra-large) affecting transcript and interim text
+- [x] Preference persisted in Zustand like flip mode
+- [x] Layout remains usable on small phones without horizontal scroll
 
-**Implementation intent:** Store `captionSize` enum; map to Tailwind text classes on `TranscriptDisplay` wrapper.
+**Implementation note:** Added `captionSize` to Zustand (persisted), `captionSizeSchema`, `getCaptionTextClassName` with `break-words`, `CaptionSizeSelect` in transcript toolbar, sizes applied on `TranscriptDisplay` wrapper.
 
 ---
 

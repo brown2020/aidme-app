@@ -21,6 +21,7 @@ export default function Listen() {
     shouldListen,
     isTranscriptFlipped,
     recognitionLanguage,
+    captionSize,
     toggleIsTranscriptFlipped,
     setIsTranscriptFlipped,
   } = useAppStore();
@@ -80,7 +81,7 @@ export default function Listen() {
 
   return (
     <main
-      className="flex flex-col w-full h-full gap-9 text-4xl text-white bg-black font-semibold p-5 tracking-tight overflow-y-auto"
+      className="flex flex-col w-full h-full gap-9 text-white bg-black font-semibold p-5 tracking-tight overflow-y-auto overflow-x-hidden"
       aria-live="polite"
       aria-atomic="true"
       aria-relevant="additions text"
@@ -98,6 +99,7 @@ export default function Listen() {
         interimTranscript={interimTranscript}
         isListening={isListening}
         isFlipped={isTranscriptFlipped}
+        captionSize={captionSize}
         transcriptEndRef={transcriptEndRef}
       />
     </main>

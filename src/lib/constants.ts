@@ -34,6 +34,17 @@ export const RECOGNITION_LANGUAGES = [
 export type RecognitionLanguageCode =
   (typeof RECOGNITION_LANGUAGES)[number]["code"];
 
+/** Caption text size options for transcript display */
+export const CAPTION_SIZES = [
+  { value: "default", label: "Default" },
+  { value: "large", label: "Large" },
+  { value: "xlarge", label: "Extra large" },
+] as const;
+
+export type CaptionSizeValue = (typeof CAPTION_SIZES)[number]["value"];
+
+export const DEFAULT_CAPTION_SIZE: CaptionSizeValue = "default";
+
 /**
  * Centralized error messages for consistency
  * All user-facing error messages should be defined here
