@@ -82,6 +82,7 @@ export default function Listen() {
 
   return (
     <main
+      lang={recognitionLanguage}
       className="flex flex-col w-full h-full gap-9 text-white bg-black font-semibold p-5 tracking-tight overflow-y-auto overflow-x-hidden"
       aria-live="polite"
       aria-atomic="true"
@@ -90,6 +91,7 @@ export default function Listen() {
       <TranscriptHeader
         transcript={transcript}
         interimTranscript={interimTranscript}
+        outputLanguage={recognitionLanguage}
         isListening={isListening}
         isFlipped={isTranscriptFlipped}
         onToggleFlip={toggleIsTranscriptFlipped}

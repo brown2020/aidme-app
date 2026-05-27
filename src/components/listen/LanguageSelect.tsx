@@ -37,7 +37,7 @@ export const LanguageSelect = memo(function LanguageSelect({
       }
     >
       <label htmlFor="recognition-language" className={labelClass}>
-        Caption language
+        Output language
       </label>
       <select
         id="recognition-language"
@@ -46,7 +46,7 @@ export const LanguageSelect = memo(function LanguageSelect({
         onChange={(e) =>
           setRecognitionLanguage(e.target.value as RecognitionLanguage)
         }
-        aria-label="Speech recognition language"
+        aria-label="Transcription output language"
       >
         {RECOGNITION_LANGUAGES.map(({ code, label }) => (
           <option key={code} value={code}>

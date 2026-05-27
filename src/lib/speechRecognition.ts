@@ -44,6 +44,20 @@ export function getSpeechRecognitionInstance(
     return null;
   }
 
+  // Browsers often ignore lang changes on a running instance — recreate when it changes
+  if (recognitionInstance && recognitionInstance.lang !== language) {
+    try {
+      recognitionInstance.stop();
+    } catch {
+      // Ignore stop errors during language switch
+    }
+    recognitionInstance = null;
+    recognitionState = "idle";
+    logger.debug("Recreating SpeechRecognition for new output language", {
+      language,
+    });
+  }
+
   if (!recognitionInstance) {
     try {
       recognitionInstance = new SpeechRecognitionAPI();
@@ -55,9 +69,6 @@ export function getSpeechRecognitionInstance(
       logger.error("Failed to create SpeechRecognition instance", error);
       return null;
     }
-  } else if (recognitionInstance.lang !== language) {
-    recognitionInstance.lang = language;
-    logger.debug("Updated SpeechRecognition language", { language });
   }
 
   return recognitionInstance;

@@ -40,6 +40,12 @@ export const RECOGNITION_LANGUAGES = [
 export type RecognitionLanguageCode =
   (typeof RECOGNITION_LANGUAGES)[number]["code"];
 
+/** Human-readable label for a BCP 47 recognition language code */
+export function getRecognitionLanguageLabel(code: string): string {
+  const match = RECOGNITION_LANGUAGES.find((entry) => entry.code === code);
+  return match?.label ?? code;
+}
+
 /** Caption text size options for transcript display */
 export const CAPTION_SIZES = [
   { value: "default", label: "Default" },

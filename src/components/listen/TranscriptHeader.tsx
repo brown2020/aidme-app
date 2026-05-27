@@ -5,10 +5,13 @@ import ListeningStatus from "../ListeningStatus";
 import { LanguageSelect } from "./LanguageSelect";
 import { CopyTranscriptButton } from "./CopyTranscriptButton";
 import { CaptionSizeSelect } from "./CaptionSizeSelect";
+import { getRecognitionLanguageLabel } from "@/lib/constants";
+import type { RecognitionLanguage } from "@/lib/validation";
 
 interface TranscriptHeaderProps {
   transcript: string[];
   interimTranscript: string;
+  outputLanguage: RecognitionLanguage;
   isListening: boolean;
   isFlipped: boolean;
   onToggleFlip: () => void;
@@ -21,13 +24,19 @@ interface TranscriptHeaderProps {
 export const TranscriptHeader = memo(function TranscriptHeader({
   transcript,
   interimTranscript,
+  outputLanguage,
   isListening,
   isFlipped,
   onToggleFlip,
 }: TranscriptHeaderProps) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <h2 className="text-2xl">Transcription</h2>
+      <div>
+        <h2 className="text-2xl">Transcription</h2>
+        <p className="text-sm text-gray-400 font-normal mt-1">
+          Output language: {getRecognitionLanguageLabel(outputLanguage)}
+        </p>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
         <LanguageSelect variant="toolbar" />
         <CaptionSizeSelect />
