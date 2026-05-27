@@ -53,6 +53,14 @@ export const ERROR_MESSAGES = {
     "Speech recognition is not available for the selected language. Try another language.",
 } as const;
 
+/** Clipboard copy feedback (Sonner toasts) */
+export const COPY_MESSAGES = {
+  SUCCESS: "Transcript copied to clipboard",
+  EMPTY: "Nothing to copy yet",
+  UNSUPPORTED: "Copy is not supported in this browser",
+  FAILED: "Could not copy to clipboard",
+} as const;
+
 /** Company information for legal pages */
 export const COMPANY_INFO = {
   name: "Ignite Channel",

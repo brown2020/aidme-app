@@ -66,7 +66,7 @@ Single-page transcription experience at `/` with global header (mic, logo, help)
 | iOS / Android app links | Shipped | `public/.well-known/*` |
 | React Native refresh bridge | Shipped | Logo click → `postMessage("refresh")` |
 | Language selection UI | **Shipped** | `LanguageSelect` + persisted `recognitionLanguage` in Zustand |
-| Transcript export / copy | **Not shipped** | README listed as idea only |
+| Transcript copy to clipboard | **Shipped** | `CopyTranscriptButton` + `lib/transcript.ts` |
 | Transcript persistence | **Not shipped** | In-memory only; refresh clears |
 | User accounts / sync | **Not shipped** | By design |
 | Firefox transcription | **Not supported** | No Web Speech API |
@@ -152,17 +152,19 @@ Ordered by user impact and dependency. Each item is sized for **one focused comm
 
 ---
 
-### R2 — Copy transcript to clipboard
+### R2 — Copy transcript to clipboard ✅
+
+**Status:** Completed (dev, 2026-05-26)
 
 **User value:** Users can save or share what they heard without retyping.
 
 **Acceptance criteria:**
 
-- One control copies full transcript (final sentences + optional interim) to clipboard
-- Success/failure feedback via Sonner toast
-- Works on supported desktop/mobile browsers; graceful message if `navigator.clipboard` unavailable
+- [x] One control copies full transcript (final sentences + optional interim) to clipboard
+- [x] Success/failure feedback via Sonner toast
+- [x] Works on supported desktop/mobile browsers; graceful message if `navigator.clipboard` unavailable
 
-**Implementation intent:** Pure client utility joining `transcript` array; button in `TranscriptHeader`; no server.
+**Implementation note:** Added `lib/transcript.ts` (format, clipboard API + `execCommand` fallback), `CopyTranscriptButton` in `TranscriptHeader`, `COPY_MESSAGES` toasts, Vitest coverage.
 
 ---
 

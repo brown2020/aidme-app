@@ -86,6 +86,8 @@ export default function Listen() {
       aria-relevant="additions text"
     >
       <TranscriptHeader
+        transcript={transcript}
+        interimTranscript={interimTranscript}
         isListening={isListening}
         isFlipped={isTranscriptFlipped}
         onToggleFlip={toggleIsTranscriptFlipped}

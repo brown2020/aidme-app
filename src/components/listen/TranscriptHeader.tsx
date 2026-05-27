@@ -3,8 +3,11 @@ import { RotateCw } from "lucide-react";
 import { Button } from "../ui/Button";
 import ListeningStatus from "../ListeningStatus";
 import { LanguageSelect } from "./LanguageSelect";
+import { CopyTranscriptButton } from "./CopyTranscriptButton";
 
 interface TranscriptHeaderProps {
+  transcript: string[];
+  interimTranscript: string;
   isListening: boolean;
   isFlipped: boolean;
   onToggleFlip: () => void;
@@ -15,6 +18,8 @@ interface TranscriptHeaderProps {
  * Contains flip control and listening status
  */
 export const TranscriptHeader = memo(function TranscriptHeader({
+  transcript,
+  interimTranscript,
   isListening,
   isFlipped,
   onToggleFlip,
@@ -24,6 +29,10 @@ export const TranscriptHeader = memo(function TranscriptHeader({
       <h2 className="text-2xl">Transcription</h2>
       <div className="flex flex-wrap items-center gap-3">
         <LanguageSelect variant="toolbar" />
+        <CopyTranscriptButton
+          transcript={transcript}
+          interimTranscript={interimTranscript}
+        />
         <Button
           variant="secondary"
           size="sm"
