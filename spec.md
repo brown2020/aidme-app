@@ -65,12 +65,12 @@ Single-page transcription experience at `/` with global header (mic, logo, help)
 | PWA manifest | Shipped | `public/manifest.json` |
 | iOS / Android app links | Shipped | `public/.well-known/*` |
 | React Native refresh bridge | Shipped | Logo click → `postMessage("refresh")` |
-| Language selection UI | **Not shipped** | `useListening` accepts `language` param but hardcoded `en-US` **(inferred gap)** |
+| Language selection UI | **Shipped** | `LanguageSelect` + persisted `recognitionLanguage` in Zustand |
 | Transcript export / copy | **Not shipped** | README listed as idea only |
 | Transcript persistence | **Not shipped** | In-memory only; refresh clears |
 | User accounts / sync | **Not shipped** | By design |
 | Firefox transcription | **Not supported** | No Web Speech API |
-| Automated tests | **Not shipped** | No Jest/RTL in repo |
+| Automated tests | **Partial** | Vitest for lib validation, speech module, route model |
 
 ### Current user flows (diagram)
 
@@ -121,14 +121,14 @@ flowchart TD
 - Transcript lost on full page reload
 - Firefox and other non-Web Speech browsers cannot transcribe
 - Brief pauses between utterances while recognition restarts
-- No UI to change recognition language despite hook parameter
+- Browser may not support every listed language tag (user sees language error)
 - Transcript list keys use array index **(inferred:** rare reorder issues if cap logic changes)
 - Legal pages show `COMPANY_INFO.updatedAt` of November 2023—may be stale relative to product
 - README dependency table can drift from `package.json` **(inferred documentation debt)**
 
 ### Partially implemented / abandoned systems
 
-- **None identified** as half-built backends or auth. The `language` argument on `useListening` is the main **latent** API without UI.
+- **None identified** as half-built backends or auth.
 
 ---
 
@@ -136,17 +136,19 @@ flowchart TD
 
 Ordered by user impact and dependency. Each item is sized for **one focused commit sequence** on `dev`.
 
-### R1 — Recognition language picker
+### R1 — Recognition language picker ✅
+
+**Status:** Completed (dev, 2026-05-26)
 
 **User value:** Non–English speakers and bilingual households can use captions in their language.
 
 **Acceptance criteria:**
 
-- User can choose a BCP 47 language (e.g. `en-US`, `es-ES`) from a simple control on the transcript or settings area
-- Choice persists across sessions (Zustand `partialize` + Zod schema update)
-- `useListening` receives the selected language; recognition restarts cleanly on change
+- [x] User can choose a BCP 47 language (e.g. `en-US`, `es-ES`) from a simple control on the transcript or settings area
+- [x] Choice persists across sessions (Zustand `partialize` + Zod schema update)
+- [x] `useListening` receives the selected language; recognition restarts cleanly on change
 
-**Implementation intent:** Extend `useAppStore` with `recognitionLanguage`, validate with `z.string()` or existing schema in `validation.ts`, wire select UI in `TranscriptHeader` or instructions, pass to `useListening(shouldListen, language)`.
+**Implementation note:** Added `recognitionLanguage` to Zustand (persisted), `recognitionLanguageSchema` / `RECOGNITION_LANGUAGES` in constants, `LanguageSelect` on transcript header and onboarding, `language-not-supported` error handling, and validation tests.
 
 ---
 
@@ -270,6 +272,19 @@ Ordered by user impact and dependency. Each item is sized for **one focused comm
 - Includes timestamps if R9 shipped
 
 **Implementation intent:** `Blob` + temporary anchor; depends on R2/R9 optionally.
+
+---
+
+### R1a — Auto-detect browser language for initial picker default
+
+**User value:** First-time users see their device language pre-selected when supported.
+
+**Acceptance criteria:**
+
+- On first visit (no persisted language), default `recognitionLanguage` maps from `navigator.language` when it matches a supported code (or nearest prefix match)
+- Persisted user choice always wins over auto-detect
+
+**Implementation intent:** One-time hydration helper in store `onRehydrateStorage` or client effect; no new UI.
 
 ---
 

@@ -48,6 +48,10 @@ export default function useListening(
     permissionErrorRef.current = permissionError;
   }, [permissionError]);
 
+  useEffect(() => {
+    setInterimTranscript("");
+  }, [language]);
+
   // Clear blocking errors when listening stops so transcript remains visible
   useEffect(() => {
     if (!shouldListen) {
@@ -134,6 +138,13 @@ export default function useListening(
       if (event.error === "network" || event.error === "service-not-allowed") {
         setPermissionError(ERROR_MESSAGES.NETWORK_ERROR);
         logger.error("Speech recognition network error", { error: event.error });
+        return;
+      }
+
+      if (event.error === "language-not-supported") {
+        setPermissionError(ERROR_MESSAGES.LANGUAGE_NOT_SUPPORTED);
+        logger.warn("Speech recognition language not supported", { language });
+        stopRecognition(recognition);
         return;
       }
 

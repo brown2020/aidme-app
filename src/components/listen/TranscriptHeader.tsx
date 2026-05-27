@@ -2,6 +2,7 @@ import { memo } from "react";
 import { RotateCw } from "lucide-react";
 import { Button } from "../ui/Button";
 import ListeningStatus from "../ListeningStatus";
+import { LanguageSelect } from "./LanguageSelect";
 
 interface TranscriptHeaderProps {
   isListening: boolean;
@@ -19,9 +20,10 @@ export const TranscriptHeader = memo(function TranscriptHeader({
   onToggleFlip,
 }: TranscriptHeaderProps) {
   return (
-    <div className="flex items-center justify-between">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <h2 className="text-2xl">Transcription</h2>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
+        <LanguageSelect variant="toolbar" />
         <Button
           variant="secondary"
           size="sm"

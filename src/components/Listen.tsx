@@ -20,6 +20,7 @@ export default function Listen() {
   const {
     shouldListen,
     isTranscriptFlipped,
+    recognitionLanguage,
     toggleIsTranscriptFlipped,
     setIsTranscriptFlipped,
   } = useAppStore();
@@ -30,7 +31,7 @@ export default function Listen() {
     isListening,
     permissionError,
     setPermissionError,
-  } = useListening(shouldListen);
+  } = useListening(shouldListen, recognitionLanguage);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 

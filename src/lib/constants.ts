@@ -12,6 +12,28 @@ export const MAX_TRANSCRIPT_LENGTH = 200;
 /** Delay before restarting speech recognition (ms) */
 export const RECOGNITION_RESTART_DELAY_MS = 250;
 
+/** Default BCP 47 language for speech recognition */
+export const DEFAULT_RECOGNITION_LANGUAGE = "en-US" as const;
+
+/** Supported recognition languages (BCP 47) */
+export const RECOGNITION_LANGUAGES = [
+  { code: "en-US", label: "English (US)" },
+  { code: "en-GB", label: "English (UK)" },
+  { code: "es-ES", label: "Spanish (Spain)" },
+  { code: "es-MX", label: "Spanish (Mexico)" },
+  { code: "fr-FR", label: "French" },
+  { code: "de-DE", label: "German" },
+  { code: "it-IT", label: "Italian" },
+  { code: "pt-BR", label: "Portuguese (Brazil)" },
+  { code: "zh-CN", label: "Chinese (Simplified)" },
+  { code: "ja-JP", label: "Japanese" },
+  { code: "ko-KR", label: "Korean" },
+  { code: "hi-IN", label: "Hindi" },
+] as const;
+
+export type RecognitionLanguageCode =
+  (typeof RECOGNITION_LANGUAGES)[number]["code"];
+
 /**
  * Centralized error messages for consistency
  * All user-facing error messages should be defined here
@@ -27,6 +49,8 @@ export const ERROR_MESSAGES = {
     "Microphone access was denied. Please allow microphone access in your browser settings.",
   NETWORK_ERROR:
     "Speech recognition service unavailable. Please check your internet connection and try again.",
+  LANGUAGE_NOT_SUPPORTED:
+    "Speech recognition is not available for the selected language. Try another language.",
 } as const;
 
 /** Company information for legal pages */

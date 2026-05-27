@@ -4,6 +4,7 @@ import { Mic } from "lucide-react";
 import { useStartListening } from "@/hooks/useStartListening";
 import Alert from "./Alert";
 import { Button } from "./ui/Button";
+import { LanguageSelect } from "./listen/LanguageSelect";
 
 /**
  * Instructions page component
@@ -24,6 +25,8 @@ export default function Instructions() {
         Click the microphone to begin. Allow microphone and speech transcription
         permissions.
       </p>
+
+      <LanguageSelect variant="onboarding" />
 
       {!isSupported && (
         <Alert variant="warning">
