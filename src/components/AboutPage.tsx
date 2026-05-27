@@ -25,6 +25,10 @@ export default function AboutPage() {
       <h4>Getting Started</h4>
       <ul>
         <li>Click the microphone icon in the header to begin listening</li>
+        <li>
+          Press Space (when not typing in a form field) to quickly start or stop
+          listening
+        </li>
         <li>Allow microphone access when prompted by your browser</li>
         <li>Position speakers within 6 feet for best results</li>
         <li>Speak clearly and at a moderate pace</li>

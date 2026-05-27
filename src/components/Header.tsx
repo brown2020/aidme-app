@@ -5,8 +5,12 @@ import Image from "next/image";
 import { HelpCircleIcon, MicIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useStartListening } from "@/hooks/useStartListening";
+import { useMicToggleShortcut } from "@/hooks/useMicToggleShortcut";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
-import { LISTENING_TIMEOUT_MS } from "@/lib/constants";
+import {
+  LISTENING_TIMEOUT_MS,
+  MIC_TOGGLE_SHORTCUT_LABEL,
+} from "@/lib/constants";
 import { Button } from "./ui/Button";
 import logo from "../assets/aidme.png";
 
@@ -27,6 +31,8 @@ export default function Header() {
 
   // Set CSS variable for viewport height (mobile browser compatibility)
   useViewportHeight();
+
+  useMicToggleShortcut(toggleListening, { disabled: isStarting });
 
   // Auto-stop listening after timeout
   useEffect(() => {
@@ -59,7 +65,13 @@ export default function Header() {
         size="md"
         onClick={toggleListening}
         disabled={isStarting}
-        aria-label={isListening ? "Stop listening" : "Start listening"}
+        aria-label={
+          isListening
+            ? `Stop listening (${MIC_TOGGLE_SHORTCUT_LABEL} shortcut)`
+            : `Start listening (${MIC_TOGGLE_SHORTCUT_LABEL} shortcut)`
+        }
+        aria-keyshortcuts={MIC_TOGGLE_SHORTCUT_LABEL}
+        title={`Toggle listening (${MIC_TOGGLE_SHORTCUT_LABEL})`}
         aria-busy={isStarting}
       >
         <MicIcon size={24} />

@@ -68,6 +68,7 @@ Single-page transcription experience at `/` with global header (mic, logo, help)
 | Language selection UI | **Shipped** | `LanguageSelect` + persisted `recognitionLanguage` in Zustand |
 | Transcript copy to clipboard | **Shipped** | `CopyTranscriptButton` + `lib/transcript.ts` |
 | Adjustable caption text size | **Shipped** | `CaptionSizeSelect` + persisted `captionSize` |
+| Mic toggle keyboard shortcut | **Shipped** | Space via `useMicToggleShortcut` in `Header` |
 | Transcript persistence | **Not shipped** | In-memory only; refresh clears |
 | User accounts / sync | **Not shipped** | By design |
 | Firefox transcription | **Not supported** | No Web Speech API |
@@ -185,17 +186,19 @@ Ordered by user impact and dependency. Each item is sized for **one focused comm
 
 ---
 
-### R4 — Keyboard shortcut for mic toggle
+### R4 — Keyboard shortcut for mic toggle ✅
+
+**Status:** Completed (dev, 2026-05-26)
 
 **User value:** Faster control for power users and assistive tech workflows.
 
 **Acceptance criteria:**
 
-- Documented shortcut (e.g. Space when focus not in input) toggles listen via existing `toggleListening`
-- Shortcut ignored when focus is in form fields **(inferred)**
-- No conflict with browser defaults on `/`
+- [x] Documented shortcut (e.g. Space when focus not in input) toggles listen via existing `toggleListening`
+- [x] Shortcut ignored when focus is in form fields **(inferred)**
+- [x] No conflict with browser defaults on `/` (`preventDefault` when handled)
 
-**Implementation intent:** `useEffect` in `Header` or small `useKeyboardListen` hook; `aria-keyshortcuts` on mic button.
+**Implementation note:** Added `useMicToggleShortcut` hook, `lib/keyboard.ts` guards, `aria-keyshortcuts` + `title` on mic button, About page help line, Vitest coverage.
 
 ---
 

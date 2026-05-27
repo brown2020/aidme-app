@@ -12,6 +12,12 @@ export const MAX_TRANSCRIPT_LENGTH = 200;
 /** Delay before restarting speech recognition (ms) */
 export const RECOGNITION_RESTART_DELAY_MS = 250;
 
+/** Keyboard shortcut to toggle microphone (Space, when not in a form control) */
+export const MIC_TOGGLE_SHORTCUT_KEY = " ";
+
+/** Human-readable label for accessibility and help text */
+export const MIC_TOGGLE_SHORTCUT_LABEL = "Space";
+
 /** Default BCP 47 language for speech recognition */
 export const DEFAULT_RECOGNITION_LANGUAGE = "en-US" as const;
 
