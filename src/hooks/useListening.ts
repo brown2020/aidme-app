@@ -123,32 +123,43 @@ export default function useListening(
 
     recognition.onresult = handleResult;
 
+    const setBlockingError = (message: string) => {
+      permissionErrorRef.current = message;
+      setPermissionError(message);
+      stopRecognition(recognition);
+    };
+
     recognition.onerror = (event) => {
-      if (event.error === "no-speech") {
+      if (event.error === "no-speech" || event.error === "aborted") {
         stopRecognition(recognition);
         return;
       }
 
       if (event.error === "not-allowed") {
-        setPermissionError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
+        setBlockingError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
         logger.warn("Microphone permission not allowed");
         return;
       }
 
       if (event.error === "network" || event.error === "service-not-allowed") {
-        setPermissionError(ERROR_MESSAGES.NETWORK_ERROR);
-        logger.error("Speech recognition network error", { error: event.error });
+        setBlockingError(ERROR_MESSAGES.NETWORK_ERROR);
+        logger.warn("Speech recognition service unavailable", {
+          code: event.error,
+          message: event.message,
+        });
         return;
       }
 
       if (event.error === "language-not-supported") {
-        setPermissionError(ERROR_MESSAGES.LANGUAGE_NOT_SUPPORTED);
+        setBlockingError(ERROR_MESSAGES.LANGUAGE_NOT_SUPPORTED);
         logger.warn("Speech recognition language not supported", { language });
-        stopRecognition(recognition);
         return;
       }
 
-      logger.error("Speech recognition error", { error: event.error });
+      logger.error("Speech recognition error", {
+        code: event.error,
+        message: event.message,
+      });
       stopRecognition(recognition);
     };
 
