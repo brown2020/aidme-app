@@ -24,7 +24,10 @@ export default function AboutPage() {
 
       <h4>Getting Started</h4>
       <ul>
-        <li>Click the microphone icon in the header to begin listening</li>
+        <li>
+          Tap the logo for about information, the gear icon for settings, or the
+          microphone to begin listening
+        </li>
         <li>
           Press Space (when not typing in a form field) to quickly start or stop
           listening

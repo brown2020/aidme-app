@@ -4,7 +4,7 @@ import { Mic } from "lucide-react";
 import { useStartListening } from "@/hooks/useStartListening";
 import Alert from "./Alert";
 import { Button } from "./ui/Button";
-import { LanguageSelect } from "./listen/LanguageSelect";
+import Link from "next/link";
 
 /**
  * Instructions page component
@@ -26,7 +26,13 @@ export default function Instructions() {
         permissions.
       </p>
 
-      <LanguageSelect variant="onboarding" />
+      <p className="text-lg text-gray-400 text-center">
+        Set output language and text size in{" "}
+        <Link href="/settings" className="underline hover:text-white">
+          Settings
+        </Link>
+        .
+      </p>
 
       {isSupported === false && (
         <Alert variant="warning">

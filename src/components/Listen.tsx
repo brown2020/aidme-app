@@ -91,7 +91,6 @@ export default function Listen() {
       <TranscriptHeader
         transcript={transcript}
         interimTranscript={interimTranscript}
-        outputLanguage={recognitionLanguage}
         isListening={isListening}
         isFlipped={isTranscriptFlipped}
         onToggleFlip={toggleIsTranscriptFlipped}

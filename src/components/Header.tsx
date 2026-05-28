@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { HelpCircleIcon, MicIcon } from "lucide-react";
+import { MicIcon, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useStartListening } from "@/hooks/useStartListening";
 import { useMicToggleShortcut } from "@/hooks/useMicToggleShortcut";
@@ -16,7 +16,6 @@ import logo from "../assets/aidme.png";
 
 /**
  * Main application header with microphone control and navigation
- * Handles auto-stop timeout and viewport height for mobile compatibility
  */
 export default function Header() {
   const {
@@ -29,12 +28,9 @@ export default function Header() {
   const router = useRouter();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Set CSS variable for viewport height (mobile browser compatibility)
   useViewportHeight();
-
   useMicToggleShortcut(toggleListening, { disabled: isStarting });
 
-  // Auto-stop listening after timeout
   useEffect(() => {
     if (!isListening) {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -50,8 +46,6 @@ export default function Header() {
     };
   }, [isListening, stopListening]);
 
-  // Determine button variant based on state
-  // Priority: listening (recording/green) > denied (danger/red) > default (ghost)
   const getMicButtonVariant = () => {
     if (isListening) return "recording";
     if (permissionStatus === "denied") return "danger";
@@ -78,12 +72,14 @@ export default function Header() {
       </Button>
 
       <button
-        onClick={() => window.ReactNativeWebView?.postMessage("refresh")}
-        aria-label="Aid.me home"
+        type="button"
+        onClick={() => router.push("/about")}
+        className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        aria-label="About Aid.me"
       >
         <Image
           src={logo}
-          alt="Aid.me logo"
+          alt=""
           className="h-10 w-10 invert"
           width={40}
           height={40}
@@ -94,10 +90,10 @@ export default function Header() {
       <Button
         variant="ghost"
         size="md"
-        onClick={() => router.push("/about")}
-        aria-label="Help and instructions"
+        onClick={() => router.push("/settings")}
+        aria-label="Settings"
       >
-        <HelpCircleIcon size={32} />
+        <Settings size={28} />
       </Button>
     </header>
   );

@@ -95,6 +95,8 @@ export const COMPANY_INFO = {
 
 /** Navigation links */
 export const NAV_LINKS = [
+  { title: "Transcribe", href: "/" },
+  { title: "Settings", href: "/settings" },
   { title: "About", href: "/about" },
   { title: "Privacy", href: "/privacy" },
   { title: "Terms", href: "/terms" },
