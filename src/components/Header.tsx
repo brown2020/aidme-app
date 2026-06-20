@@ -46,6 +46,15 @@ export default function Header() {
     };
   }, [isListening, stopListening]);
 
+  const handleLogoClick = () => {
+    if (window.ReactNativeWebView) {
+      window.ReactNativeWebView.postMessage("refresh");
+      return;
+    }
+
+    router.push("/about");
+  };
+
   const getMicButtonVariant = () => {
     if (isListening) return "recording";
     if (permissionStatus === "denied") return "danger";
@@ -73,7 +82,7 @@ export default function Header() {
 
       <button
         type="button"
-        onClick={() => router.push("/about")}
+        onClick={handleLogoClick}
         className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
         aria-label="About Aid.me"
       >

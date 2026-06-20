@@ -38,10 +38,13 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
     if (typeof window === "undefined") return;
 
     let removeChangeListener: (() => void) | undefined;
+    let isCancelled = false;
 
     navigator.permissions
       ?.query({ name: "microphone" as PermissionName })
       .then((result) => {
+        if (isCancelled) return;
+
         const validatedStatus = validatePermissionStatus(result.state);
         setStatus(validatedStatus);
 
@@ -59,10 +62,12 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
           result.removeEventListener("change", handleChange);
       })
       .catch((err) => {
+        if (isCancelled) return;
         logger.warn("Permission API not supported", err);
       });
 
     return () => {
+      isCancelled = true;
       removeChangeListener?.();
     };
   }, [setStatus, setError]);

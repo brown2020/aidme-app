@@ -39,6 +39,7 @@ export default function useListening(
   const isMountedRef = useRef(true);
   const shouldListenRef = useRef(shouldListen);
   const permissionErrorRef = useRef(permissionError);
+  const recognitionEffectIdRef = useRef(0);
 
   useEffect(() => {
     shouldListenRef.current = shouldListen;
@@ -119,7 +120,12 @@ export default function useListening(
     const recognition = getSpeechRecognitionInstance(language);
     if (!recognition) return;
 
+    const effectId = recognitionEffectIdRef.current + 1;
+    recognitionEffectIdRef.current = effectId;
     isMountedRef.current = true;
+
+    const isCurrentRecognitionEffect = () =>
+      recognitionEffectIdRef.current === effectId && isMountedRef.current;
 
     recognition.onresult = handleResult;
 
@@ -172,7 +178,7 @@ export default function useListening(
       setIsRecognitionActive(false);
       setIsListening(false);
 
-      if (!canRestartListening()) return;
+      if (!isCurrentRecognitionEffect() || !canRestartListening()) return;
 
       if (restartTimeoutRef.current !== null) {
         clearTimeout(restartTimeoutRef.current);
@@ -180,7 +186,7 @@ export default function useListening(
 
       restartTimeoutRef.current = window.setTimeout(() => {
         restartTimeoutRef.current = null;
-        if (canRestartListening()) {
+        if (isCurrentRecognitionEffect() && canRestartListening()) {
           startRecognition(recognition);
         }
       }, RECOGNITION_RESTART_DELAY_MS);
@@ -194,6 +200,9 @@ export default function useListening(
 
     return () => {
       isMountedRef.current = false;
+      if (recognitionEffectIdRef.current === effectId) {
+        recognitionEffectIdRef.current += 1;
+      }
 
       if (restartTimeoutRef.current !== null) {
         clearTimeout(restartTimeoutRef.current);

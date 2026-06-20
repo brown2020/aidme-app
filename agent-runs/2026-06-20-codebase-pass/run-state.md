@@ -11,23 +11,27 @@
 
 ## Current State
 
-- Phase: Findings Backlog
-- Task: T-003
-- Status: Ready for findings commit-push checkpoint
-- Last command: rg -n "TODO|FIXME|eslint-disable|any\\b|setTimeout|addEventListener|removeEventListener|useEffect|window\\.|navigator\\.|localStorage|sessionStorage" src
-- Last result: Findings F-001 through F-007 recorded; P2 fix batch identified.
-- Last pushed commit: 89bcdf5
-- Branch sync: `dev...origin/dev` at `89bcdf5` before findings report edits.
-- Working tree: Dirty with safe in-scope findings report updates only.
-- Next action: Run lint, stage findings report/state/queue changes, commit `chore: add codebase findings backlog`, dry-run push, push, fetch, and confirm sync.
+- Phase: Execute Fixes and Improvements
+- Task: T-004
+- Status: Ready for fix-batch commit-push checkpoint
+- Last command: npm run build
+- Last result: Passed after targeted tests, lint, full tests, and build.
+- Last pushed commit: e69574c
+- Branch sync: `dev...origin/dev` at `e69574c` before fix edits.
+- Working tree: Dirty with in-scope source/test fixes and execution report updates.
+- Next action: Stage fix batch and reports, commit `fix: address prioritized codebase issues`, dry-run push, push, fetch, and confirm sync.
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md` | Safe-to-commit | Findings backlog for this `$sb-cbi` run |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for findings phase |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for findings phase |
+| `src/components/Header.tsx` | In-scope source | F-001 native WebView bridge fix |
+| `src/hooks/useListening.ts` | In-scope source | F-002 stale recognition restart guard |
+| `src/hooks/useMicrophonePermission.ts` | In-scope source | F-003 async permission listener cleanup guard |
+| `src/lib/route-security.test.ts` | In-scope test | F-004 route model test improvement |
+| `agent-runs/2026-06-20-codebase-pass/04-execute-fixes-and-improvements.md` | Safe-to-commit | Execution phase report |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for execution phase |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for execution phase |
 
 ## Blockers
 
@@ -62,4 +66,10 @@ sed -n '1,220p' src/hooks/useSpeechRecognitionSupported.ts
 sed -n '1,220p' src/hooks/useMicToggleShortcut.ts
 sed -n '1,220p' src/lib/keyboard.ts
 rg -n "TODO|FIXME|eslint-disable|any\\b|setTimeout|addEventListener|removeEventListener|useEffect|window\\.|navigator\\.|localStorage|sessionStorage" src
+npx vitest run src/lib/route-security.test.ts src/lib/speechRecognition.test.ts
+npm run lint
+npm run test:ci
+npm run build
+git diff -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
+git diff --check
 ```
