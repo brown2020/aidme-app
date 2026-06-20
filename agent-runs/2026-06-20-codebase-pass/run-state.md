@@ -11,23 +11,25 @@
 
 ## Current State
 
-- Phase: Review
-- Task: T-006
-- Status: Ready for review commit-push checkpoint
-- Last command: git diff f0f5377..HEAD -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
-- Last result: Judge Loop PASS with deferred forced audit/manual QA notes.
-- Last pushed commit: b0867d2
-- Branch sync: `dev...origin/dev` at `b0867d2` before review report edits.
-- Working tree: Dirty with review report updates only.
-- Next action: Run lint, stage review report/state/queue, commit `chore: add review findings`, dry-run push, push, fetch, and confirm sync.
+- Phase: Integrator
+- Task: T-007
+- Status: Ready for final report commit-push checkpoint
+- Last command: git log --oneline f0f5377..HEAD
+- Last result: Final stabilization checks passed; forced-only audit advisory documented.
+- Last pushed commit: 15fa7d6
+- Branch sync: `dev...origin/dev` at `15fa7d6` before final report edits.
+- Working tree: Dirty with final report/stabilization/integrator report updates only.
+- Next action: Stage final report files, commit `chore: add final codebase improvement report`, dry-run push, push, fetch, confirm sync, and report outcome.
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/06-review.md` | Safe-to-commit | Review phase report |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for review phase |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for review phase |
+| `agent-runs/2026-06-20-codebase-pass/07-stabilization-loop.md` | Safe-to-commit | Stabilization report |
+| `agent-runs/2026-06-20-codebase-pass/08-integrator.md` | Safe-to-commit | Integrator report |
+| `agent-runs/2026-06-20-codebase-pass/final-report.md` | Safe-to-commit | Final report |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger final update |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task completion update |
 
 ## Blockers
 
@@ -82,4 +84,11 @@ git log --oneline --decorate f0f5377..HEAD
 git diff --stat f0f5377..HEAD
 git diff -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
 git diff f0f5377..HEAD -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
+git ls-remote --exit-code origin HEAD
+git push --dry-run origin dev
+npm run lint
+npm run test:ci
+npm run build
+npm audit --audit-level=moderate
+git log --oneline f0f5377..HEAD
 ```
