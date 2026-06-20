@@ -11,23 +11,23 @@
 
 ## Current State
 
-- Phase: Baseline Validation
-- Task: T-002
-- Status: Ready for baseline commit-push checkpoint
-- Last command: npm audit --audit-level=moderate
-- Last result: Exited 1 with classified dependency advisories; lint/test/build passed.
-- Last pushed commit: dee039d
-- Branch sync: `dev...origin/dev` at `dee039d` before baseline report edits.
-- Working tree: Dirty with safe in-scope baseline report updates only.
-- Next action: Stage only baseline report/state/queue changes, commit `test: document baseline validation`, dry-run push, push, fetch, and confirm sync.
+- Phase: Findings Backlog
+- Task: T-003
+- Status: Ready for findings commit-push checkpoint
+- Last command: rg -n "TODO|FIXME|eslint-disable|any\\b|setTimeout|addEventListener|removeEventListener|useEffect|window\\.|navigator\\.|localStorage|sessionStorage" src
+- Last result: Findings F-001 through F-007 recorded; P2 fix batch identified.
+- Last pushed commit: 89bcdf5
+- Branch sync: `dev...origin/dev` at `89bcdf5` before findings report edits.
+- Working tree: Dirty with safe in-scope findings report updates only.
+- Next action: Run lint, stage findings report/state/queue changes, commit `chore: add codebase findings backlog`, dry-run push, push, fetch, and confirm sync.
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/02-baseline-validation.md` | Safe-to-commit | Baseline report for this `$sb-cbi` run |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for baseline phase |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for baseline phase |
+| `agent-runs/2026-06-20-codebase-pass/03-findings-backlog.md` | Safe-to-commit | Findings backlog for this `$sb-cbi` run |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for findings phase |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for findings phase |
 
 ## Blockers
 
@@ -56,4 +56,10 @@ npm run test:ci
 npm run build
 npm outdated
 npm audit --audit-level=moderate
+sed -n '1,260p' src/lib/speechRecognition.test.ts
+sed -n '1,260p' src/lib/route-security.test.ts
+sed -n '1,220p' src/hooks/useSpeechRecognitionSupported.ts
+sed -n '1,220p' src/hooks/useMicToggleShortcut.ts
+sed -n '1,220p' src/lib/keyboard.ts
+rg -n "TODO|FIXME|eslint-disable|any\\b|setTimeout|addEventListener|removeEventListener|useEffect|window\\.|navigator\\.|localStorage|sessionStorage" src
 ```
