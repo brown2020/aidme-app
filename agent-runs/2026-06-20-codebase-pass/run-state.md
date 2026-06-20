@@ -11,24 +11,23 @@
 
 ## Current State
 
-- Phase: Package and Dead-Code Cleanup
-- Task: T-005
-- Status: Ready for package cleanup commit-push checkpoint
-- Last command: npm run build
-- Last result: Passed on updated lockfile after lint and tests passed.
-- Last pushed commit: ae79494
-- Branch sync: `dev...origin/dev` at `ae79494` before package edits.
-- Working tree: Dirty with `package-lock.json` and package cleanup report updates.
-- Next action: Stage package lock and reports, commit `chore: update packages and remove dead code`, dry-run push, push, fetch, and confirm sync.
+- Phase: Review
+- Task: T-006
+- Status: Ready for review commit-push checkpoint
+- Last command: git diff f0f5377..HEAD -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
+- Last result: Judge Loop PASS with deferred forced audit/manual QA notes.
+- Last pushed commit: b0867d2
+- Branch sync: `dev...origin/dev` at `b0867d2` before review report edits.
+- Working tree: Dirty with review report updates only.
+- Next action: Run lint, stage review report/state/queue, commit `chore: add review findings`, dry-run push, push, fetch, and confirm sync.
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `package-lock.json` | In-scope package cleanup | Safe lockfile updates from `npm audit fix` and `npm update` |
-| `agent-runs/2026-06-20-codebase-pass/05-package-and-dead-code-cleanup.md` | Safe-to-commit | Package cleanup phase report |
-| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for package phase |
-| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for package phase |
+| `agent-runs/2026-06-20-codebase-pass/06-review.md` | Safe-to-commit | Review phase report |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for review phase |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for review phase |
 
 ## Blockers
 
@@ -79,4 +78,8 @@ npm run build
 node -p "const p=require('./package-lock.json'); ['next','react','react-dom','eslint','eslint-config-next','vitest','vite','undici','zustand','lucide-react','@tailwindcss/postcss','tailwindcss','@types/node','@types/react'].map(n=>n+': '+p.packages['node_modules/'+n]?.version).join('\\n')"
 git diff --stat package-lock.json package.json
 git diff --check
+git log --oneline --decorate f0f5377..HEAD
+git diff --stat f0f5377..HEAD
+git diff -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
+git diff f0f5377..HEAD -- src/components/Header.tsx src/hooks/useListening.ts src/hooks/useMicrophonePermission.ts src/lib/route-security.test.ts
 ```
