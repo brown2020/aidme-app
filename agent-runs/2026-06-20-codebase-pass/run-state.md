@@ -11,23 +11,23 @@
 
 ## Current State
 
-- Phase: Preflight and Repo Docs
-- Task: T-001
-- Status: Ready to stage preflight phase
-- Last command: python3 /Users/stephenbrown/.agents/skills/codebase-improvement/scripts/validate_skill.py --skill-dir /Users/stephenbrown/.agents/skills/codebase-improvement --run-dir /Users/stephenbrown/Code/OPENSOURCE/aidme-app/agent-runs/2026-06-20-codebase-pass
-- Last result: ok after `npm run lint` and `git diff --check` passed
-- Last pushed commit: f0f5377 (before this phase)
-- Branch sync: `dev...origin/dev`, clean before run-folder creation; remote read and dry-run push passed.
-- Working tree: Dirty with safe in-scope preflight docs/run reports only.
-- Next action: Stage only preflight docs/reports, commit `docs: map repository guidance and spec`, dry-run push, push, fetch, and confirm sync.
+- Phase: Baseline Validation
+- Task: T-002
+- Status: Ready for baseline commit-push checkpoint
+- Last command: npm audit --audit-level=moderate
+- Last result: Exited 1 with classified dependency advisories; lint/test/build passed.
+- Last pushed commit: dee039d
+- Branch sync: `dev...origin/dev` at `dee039d` before baseline report edits.
+- Working tree: Dirty with safe in-scope baseline report updates only.
+- Next action: Stage only baseline report/state/queue changes, commit `test: document baseline validation`, dry-run push, push, fetch, and confirm sync.
 
 ## Dirty File Classification
 
 | Path | Classification | Owner/Reason |
 | --- | --- | --- |
-| `agent-runs/2026-06-20-codebase-pass/*` | Safe-to-commit | Created by this `$sb-cbi` run for resumable reports |
-| `AGENTS.md` | Safe-to-commit | Current-state guidance update for settings route and persisted preferences |
-| `spec.md` | Safe-to-commit | Current-state product/spec correction for settings workflow and header controls |
+| `agent-runs/2026-06-20-codebase-pass/02-baseline-validation.md` | Safe-to-commit | Baseline report for this `$sb-cbi` run |
+| `agent-runs/2026-06-20-codebase-pass/run-state.md` | Safe-to-commit | Resume ledger update for baseline phase |
+| `agent-runs/2026-06-20-codebase-pass/task-queue.md` | Safe-to-commit | Task status/evidence update for baseline phase |
 
 ## Blockers
 
@@ -52,4 +52,8 @@ python3 /Users/stephenbrown/.agents/skills/codebase-improvement/scripts/start_ru
 python3 /Users/stephenbrown/.agents/skills/codebase-improvement/scripts/validate_skill.py --skill-dir /Users/stephenbrown/.agents/skills/codebase-improvement --run-dir /Users/stephenbrown/Code/OPENSOURCE/aidme-app/agent-runs/2026-06-20-codebase-pass
 npm run lint
 git diff --check
+npm run test:ci
+npm run build
+npm outdated
+npm audit --audit-level=moderate
 ```
