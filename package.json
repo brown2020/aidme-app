@@ -38,6 +38,7 @@
     "node": "22.x"
   },
   "overrides": {
-    "eslint-plugin-react-hooks": "^6.0.0"
+    "eslint-plugin-react-hooks": "^6.0.0",
+    "postcss": "$postcss"
   }
 }
