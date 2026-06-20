@@ -23,8 +23,9 @@ Agent instructions: see [AGENTS.md](./AGENTS.md). Human setup: see [README.md](.
 1. **First visit:** Land on `/` → see instructions → tap mic → grant microphone → transcript view
 2. **Return visit:** Tap header mic → listen → read auto-scrolling sentences + interim line
 3. **Face-to-face:** On mobile, toggle “Face-to-face” to rotate captions for someone opposite
-4. **Help / trust:** Open `/about`, `/privacy`, `/terms` from footer
-5. **Native wrapper:** Logo tap sends `ReactNativeWebView.postMessage("refresh")` when embedded
+4. **Settings:** Open `/settings` to choose recognition language, caption size, and review keyboard shortcut help
+5. **Help / trust:** Open `/about`, `/privacy`, `/terms` from footer
+6. **Native wrapper:** Logo tap sends `ReactNativeWebView.postMessage("refresh")` when embedded
 
 ### Product goals
 
@@ -42,7 +43,7 @@ Agent instructions: see [AGENTS.md](./AGENTS.md). Human setup: see [README.md](.
 
 ### What the app does
 
-Single-page transcription experience at `/` with global header (mic, logo, help). Speech is captured in-browser, converted to text via `SpeechRecognition`, displayed as capitalized sentences with a trailing period, with interim partial text below. Listening stops automatically after 30 minutes or when the user toggles the mic off.
+Single-page transcription experience at `/` with global header (mic, logo/about, settings). Speech is captured in-browser, converted to text via `SpeechRecognition`, displayed as capitalized sentences with a trailing period, with interim partial text below. Listening stops automatically after 30 minutes or when the user toggles the mic off.
 
 ### Feature inventory
 
@@ -68,6 +69,7 @@ Single-page transcription experience at `/` with global header (mic, logo, help)
 | Language selection UI | **Shipped** | `LanguageSelect` + persisted `recognitionLanguage` in Zustand |
 | Transcript copy to clipboard | **Shipped** | `CopyTranscriptButton` + `lib/transcript.ts` |
 | Adjustable caption text size | **Shipped** | `CaptionSizeSelect` + persisted `captionSize` |
+| Settings page | **Shipped** | `/settings` route with language, caption size, and shortcut help |
 | Mic toggle keyboard shortcut | **Shipped** | Space via `useMicToggleShortcut` in `Header` |
 | Transcript persistence | **Not shipped** | In-memory only; refresh clears |
 | User accounts / sync | **Not shipped** | By design |

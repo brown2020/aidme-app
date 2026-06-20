@@ -36,9 +36,9 @@ aidme-app/
 │   ├── app/                # Routes (App Router)
 │   │   ├── layout.tsx      # Root: Header, ErrorBoundary, Toaster
 │   │   ├── page.tsx        # Home → Listen
-│   │   └── (content)/      # about, privacy, terms (+ Footer layout)
+│   │   └── (content)/      # about, settings, privacy, terms (+ Footer layout)
 │   ├── assets/             # aidme.png (logo)
-│   ├── components/         # UI + listen/* subcomponents
+│   ├── components/         # UI + listen/* subcomponents, settings page
 │   ├── hooks/              # Speech, permissions, viewport, media query
 │   ├── lib/                # constants, speechRecognition, validation, logger
 │   ├── types/              # speech.d.ts, assets.d.ts
@@ -65,7 +65,7 @@ All logic runs in the browser after static/SSR shell delivery:
 ### State management
 
 - **Store:** `src/zustand/useAppStore.ts`
-- **Fields:** `shouldListen` (ephemeral, not persisted), `isTranscriptFlipped` (persisted to `localStorage` key `aidme-app_preferences_v1`)
+- **Fields:** `shouldListen`, `micPermissionStatus`, and `micPermissionError` (ephemeral, not persisted); `isTranscriptFlipped`, `recognitionLanguage`, and `captionSize` (persisted to `localStorage` key `aidme-app_preferences_v1`)
 - **Hydration:** Zod `appStateSchema` validation on rehydrate; invalid state resets to defaults
 
 ### Component pattern
@@ -80,6 +80,7 @@ All logic runs in the browser after static/SSR shell delivery:
 |------|-----------|-------|
 | `/` | `Listen` | Main transcription |
 | `/about` | `AboutPage` | Help copy |
+| `/settings` | `SettingsPage` | Language, caption size, and keyboard shortcut help |
 | `/privacy` | `PrivacyPage` | Static policy |
 | `/terms` | `TermsPage` | Static terms |
 
@@ -93,6 +94,11 @@ All logic runs in the browser after static/SSR shell delivery:
 - Browser unsupported state (no Web Speech API—e.g. Firefox)
 - Permission and network error surfaces with retry
 - Face-to-face mode: rotate transcript 180° on mobile (`isTranscriptFlipped`)
+- Recognition language picker persisted on device (`recognitionLanguage`)
+- Adjustable caption text size persisted on device (`captionSize`)
+- Settings page for language, caption size, and shortcut help
+- Copy transcript button with clipboard fallback
+- Space keyboard shortcut for mic toggle outside form fields
 - Auto-scroll to latest text; listening indicator (CSS, no spinner library)
 - 30-minute auto-stop; recognition auto-restart on silence/end
 - Toast errors (Sonner) on denied permission when toggling from header
