@@ -37,38 +37,35 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    let removeChangeListener: (() => void) | undefined;
     let isCancelled = false;
 
-    navigator.permissions
-      ?.query({ name: "microphone" as PermissionName })
-      .then((result) => {
-        if (isCancelled) return;
+    const syncPermissionStatus = () => {
+      if (!navigator.permissions) return;
 
-        const validatedStatus = validatePermissionStatus(result.state);
-        setStatus(validatedStatus);
-
-        const handleChange = () => {
-          const newStatus = validatePermissionStatus(result.state);
-          setStatus(newStatus);
-          if (newStatus === "granted") {
+      navigator.permissions
+        .query({ name: "microphone" as PermissionName })
+        .then((result) => {
+          if (isCancelled) return;
+          const validatedStatus = validatePermissionStatus(result.state);
+          setStatus(validatedStatus);
+          if (validatedStatus === "granted") {
             setError(null);
           }
-          logger.debug("Permission status changed", { status: newStatus });
-        };
+          logger.debug("Permission status synced", { status: validatedStatus });
+        })
+        .catch((err) => {
+          if (isCancelled) return;
+          logger.warn("Permission API not supported", err);
+        });
+    };
 
-        result.addEventListener("change", handleChange);
-        removeChangeListener = () =>
-          result.removeEventListener("change", handleChange);
-      })
-      .catch((err) => {
-        if (isCancelled) return;
-        logger.warn("Permission API not supported", err);
-      });
-
+    syncPermissionStatus();
+    // Re-check when the window regains focus (e.g. user changed site settings).
+    // Synchronous add/remove keeps the subscription cleanup analyzer-visible.
+    window.addEventListener("focus", syncPermissionStatus);
     return () => {
       isCancelled = true;
-      removeChangeListener?.();
+      window.removeEventListener("focus", syncPermissionStatus);
     };
   }, [setStatus, setError]);
 

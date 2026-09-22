@@ -16,7 +16,7 @@ import { TranscriptDisplay } from "./listen/TranscriptDisplay";
  * Main listening component - orchestrates speech recognition UI
  * Refactored into smaller sub-components for better maintainability
  */
-export default function Listen() {
+function ListenSession() {
   const {
     shouldListen,
     isTranscriptFlipped,
@@ -106,4 +106,9 @@ export default function Listen() {
       />
     </main>
   );
+}
+
+export default function Listen() {
+  const recognitionLanguage = useAppStore((s) => s.recognitionLanguage);
+  return <ListenSession key={recognitionLanguage} />;
 }

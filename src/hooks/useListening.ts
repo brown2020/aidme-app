@@ -41,6 +41,15 @@ export default function useListening(
   const permissionErrorRef = useRef(permissionError);
   const recognitionEffectIdRef = useRef(0);
 
+  // React-recommended: adjust related state during render when the listen flag
+  // changes (not in an Effect) — clears blocking error/interim on stop or restart.
+  const [prevShouldListen, setPrevShouldListen] = useState(shouldListen);
+  if (prevShouldListen !== shouldListen) {
+    setPrevShouldListen(shouldListen);
+    setPermissionError(null);
+    setInterimTranscript("");
+  }
+
   useEffect(() => {
     shouldListenRef.current = shouldListen;
   }, [shouldListen]);
@@ -48,18 +57,6 @@ export default function useListening(
   useEffect(() => {
     permissionErrorRef.current = permissionError;
   }, [permissionError]);
-
-  useEffect(() => {
-    setInterimTranscript("");
-  }, [language]);
-
-  // Clear blocking errors when listening stops so transcript remains visible
-  useEffect(() => {
-    if (!shouldListen) {
-      setPermissionError(null);
-      setInterimTranscript("");
-    }
-  }, [shouldListen]);
 
   const handleResult = useCallback((event: SpeechRecognitionEvent) => {
     let newInterimTranscript = "";
