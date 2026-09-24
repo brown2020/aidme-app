@@ -1,350 +1,126 @@
 # Aid.me
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.1.1-black?logo=next.js)](https://nextjs.org/)
-[![React](https://img.shields.io/badge/React-19.2.3-61DAFB?logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9.3-3178C6?logo=typescript)](https://www.typescriptlang.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind%20CSS-4.1.18-06B6D4?logo=tailwindcss)](https://tailwindcss.com/)
-[![Zustand](https://img.shields.io/badge/Zustand-5.0.9-orange)](https://zustand-demo.pmnd.rs/)
-[![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](LICENSE.md)
+Real-time speech transcription for accessibility — closed captioning for conversations around you. Runs entirely in the browser via the Web Speech API; no accounts, no server-side transcript storage.
 
-**Aid.me** is a real-time speech transcription web application designed for accessibility. It uses the Web Speech API to provide live closed captioning, making it ideal for individuals with hearing difficulties, note-taking, or any situation where real-time transcription is needed.
+- Web: [https://aid.me](https://aid.me)
+- iOS (WebView wrapper): [Aid Hearing on the App Store](https://apps.apple.com/us/app/aid-me-hearing/id6473455500)
 
-> 🎧 **Think of it as closed captioning for your life** — place your device on a table, and let Aid.me listen and transcribe conversations around you.
+## Features
 
-## ✨ Features
+Verified from the current codebase:
 
-- **Real-Time Transcription** — Continuous speech-to-text using the Web Speech API
-- **Accessible Design** — Built with ARIA attributes and screen reader support
-- **Auto-Scrolling** — Transcript automatically scrolls to show the latest speech
-- **Permission Handling** — Graceful microphone permission requests with clear error messages
-- **Browser Detection** — Automatically detects and warns about unsupported browsers
-- **Auto-Stop Timer** — Automatically stops listening after 30 minutes to conserve resources
-- **Mobile Responsive** — Optimized for both desktop and mobile browsers with viewport height handling
-- **PWA Ready** — Includes web app manifest for installable experience
-- **Dark Theme** — Easy-on-the-eyes dark interface for comfortable reading
-- **React Native Ready** — WebView bridge support for native app wrappers
+- **Live captions** — continuous speech-to-text with interim and final results
+- **Auto-scrolling transcript** — keeps the latest speech in view; retains up to 200 sentences
+- **Face-to-face mode** — flip captions so someone opposite you can read them
+- **Caption size** — default, large, and extra-large
+- **Language selection** — en-US/UK, es-ES/MX, fr, de, it, pt-BR, zh-CN, ja, ko, hi (BCP 47)
+- **Microphone UX** — permission prompts, clear denial/network errors, Space shortcut to toggle mic
+- **Browser support checks** — warns when `SpeechRecognition` / `webkitSpeechRecognition` is unavailable
+- **Auto-stop** — stops listening after 30 minutes
+- **Copy transcript** — clipboard export with toast feedback (Sonner)
+- **PWA manifest** — installable shell (`public/manifest.json`)
+- **Native bridge** — `ReactNativeWebView.postMessage("refresh")` when embedded in the iOS app
+- **Static pages** — `/about`, `/privacy`, `/terms`, `/settings`
 
-## 📱 Native App
+No backend APIs or environment secrets are required for local development.
 
-Aid.me is also available as a native app on the [Apple App Store](https://apps.apple.com/us/app/aid-me-hearing/id6473455500) under the name **Aid Hearing, captions for life**.
+## Tech stack
 
-## 🛠️ Tech Stack
+| Area | Choice |
+|------|--------|
+| Framework | Next.js 16 (App Router) |
+| UI | React 19, Tailwind CSS 4, Lucide |
+| Language | TypeScript 6 |
+| Validation | Zod 4 |
+| State | Zustand 5 (persisted preferences) |
+| Toasts | Sonner |
+| Images | Sharp |
+| Speech | Browser Web Speech API |
+| Tests | Vitest 4 + jsdom |
+| Lint | ESLint 10 + eslint-config-next |
+| Node | `22.x` (`engines` in package.json) |
 
-### Dependencies
+`.npmrc` sets `legacy-peer-deps=true`. Security headers (frame deny, nosniff, referrer, microphone Permissions-Policy) are set in `next.config.js`.
 
-| Package                                                  | Version  | Description                     |
-| -------------------------------------------------------- | -------- | ------------------------------- |
-| [Next.js](https://nextjs.org/)                           | 16.1.1   | React framework with App Router |
-| [React](https://react.dev/)                              | 19.2.3   | UI library                      |
-| [React DOM](https://react.dev/)                          | 19.2.3   | React DOM renderer              |
-| [Zustand](https://zustand-demo.pmnd.rs/)                 | 5.0.9    | Lightweight state management    |
-| [Lucide React](https://lucide.dev/)                      | 0.562.0  | Beautiful icon library          |
-| [Sonner](https://sonner.emilkowal.ski/)                  | 2.0.7    | Toast notifications             |
-| [Zod](https://zod.dev/)                                  | 4.x      | Runtime validation              |
-| [Sharp](https://sharp.pixelplumbing.com/)                | 0.34.5   | Image optimization for Next.js  |
+## Project structure
 
-### Dev Dependencies
+```
+aidme-app/
+├── src/
+│   ├── app/                 # App Router: `/`, settings, about, privacy, terms
+│   ├── components/          # Listen UI, settings, legal pages, layout
+│   ├── hooks/               # Listening, mic permission, viewport, shortcuts
+│   ├── lib/                 # Speech recognition helpers, constants, validation
+│   ├── zustand/             # App preferences store
+│   ├── types/               # SpeechRecognition typings + WebView bridge
+│   └── assets/
+├── public/                  # Icons, manifest, robots, Apple/Android app links
+├── vitest.config.ts
+└── .github/workflows/ci.yml
+```
 
-| Package                                                                       | Version | Description                 |
-| ----------------------------------------------------------------------------- | ------- | --------------------------- |
-| [TypeScript](https://www.typescriptlang.org/)                                 | 5.9.3   | Type-safe JavaScript        |
-| [Tailwind CSS](https://tailwindcss.com/)                                      | 4.1.18  | Utility-first CSS framework |
-| [@tailwindcss/postcss](https://tailwindcss.com/)                              | 4.1.18  | Tailwind PostCSS plugin     |
-| [PostCSS](https://postcss.org/)                                               | 8.5.6   | CSS transformations         |
-| [ESLint](https://eslint.org/)                                                 | 9.39.2  | Code linting                |
-| [eslint-config-next](https://nextjs.org/docs/app/api-reference/config/eslint) | 16.1.1  | Next.js ESLint config       |
-| [@types/node](https://www.npmjs.com/package/@types/node)                      | 25.0.3  | Node.js type definitions    |
-| [@types/react](https://www.npmjs.com/package/@types/react)                    | 19.2.7  | React type definitions      |
-| [@types/react-dom](https://www.npmjs.com/package/@types/react-dom)            | 19.2.3  | React DOM type definitions  |
-
-## 🚀 Getting Started
+## Getting started
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) **v22.x** (required — see `engines` in package.json)
-- [npm](https://www.npmjs.com/) v10 or later
+- Node.js **22.x**
+- npm 10+
+- A Chromium-based browser or Safari with Web Speech API support (and a microphone)
 
-### Installation
-
-1. **Clone the repository**
+### Install and run
 
 ```bash
 git clone https://github.com/brown2020/aidme-app.git
 cd aidme-app
-```
-
-2. **Install dependencies**
-
-```bash
+git checkout dev
 npm install
-```
-
-3. **Start the development server**
-
-```bash
 npm run dev
 ```
 
-4. **Open your browser**
+Open [http://localhost:3000](http://localhost:3000) and allow microphone access when prompted.
 
-Navigate to [http://localhost:3000](http://localhost:3000)
+## Environment variables
 
-### Available Scripts
+None required. The app only references `process.env.NODE_ENV` for build/runtime mode.
 
-| Command         | Description                              |
-| --------------- | ---------------------------------------- |
-| `npm run dev`   | Start development server with hot reload |
-| `npm run build` | Create optimized production build        |
-| `npm run start` | Start production server                  |
-| `npm run lint`  | Run ESLint (`eslint .`)                  |
+## Scripts
 
-## 📁 Project Structure
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Next.js dev server |
+| `npm run build` | Production build |
+| `npm start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run typecheck` | `tsc --noEmit` |
+| `npm test` | Vitest once |
+| `npm run test:ci` | Vitest with `CI=true` |
 
-```
-aidme-app/
-├── public/
-│   ├── .well-known/
-│   │   ├── apple-app-site-association  # iOS Universal Links
-│   │   └── assetlinks.json             # Android App Links
-│   ├── manifest.json                   # PWA manifest
-│   ├── robots.txt                      # Search engine directives
-│   ├── logo192.png                     # App icon (small)
-│   └── logo512.png                     # App icon (large)
-├── src/
-│   ├── app/
-│   │   ├── (content)/                  # Content pages route group
-│   │   │   ├── layout.tsx              # Shared layout with Footer
-│   │   │   ├── about/page.tsx          # About/instructions page
-│   │   │   ├── privacy/page.tsx        # Privacy policy
-│   │   │   └── terms/page.tsx          # Terms of service
-│   │   ├── layout.tsx                  # Root layout with metadata
-│   │   ├── page.tsx                    # Home page (transcription)
-│   │   ├── globals.css                 # Global styles & Tailwind
-│   │   └── favicon.ico                 # Favicon
-│   ├── assets/
-│   │   └── aidme.png                   # Logo asset
-│   ├── components/
-│   │   ├── Alert.tsx                   # Alert/notification component
-│   │   ├── Footer.tsx                  # Footer with navigation links
-│   │   ├── Header.tsx                  # Header with mic toggle
-│   │   ├── Instructions.tsx            # Getting started instructions
-│   │   ├── Listen.tsx                  # Main transcription component
-│   │   ├── ListeningStatus.tsx         # Listening indicator
-│   │   ├── PrivacyPage.tsx             # Privacy policy content
-│   │   └── TermsPage.tsx               # Terms of service content
-│   ├── hooks/
-│   │   ├── useListening.ts             # Speech recognition lifecycle
-│   │   ├── useMicrophonePermission.ts  # Permission state management
-│   │   ├── useStartListening.ts        # Start/stop/toggle controls
-│   │   └── useViewportHeight.ts        # Mobile viewport fix
-│   ├── lib/
-│   │   ├── constants.ts                # App configuration constants
-│   │   └── speechRecognition.ts        # Web Speech API utilities
-│   ├── types/
-│   │   └── speech.d.ts                 # Speech API type definitions
-│   └── zustand/
-│       └── useAppStore.ts              # Global state store
-├── next.config.js                      # Next.js configuration
-├── postcss.config.js                   # PostCSS configuration
-├── tsconfig.json                       # TypeScript configuration
-└── package.json                        # Dependencies & scripts
-```
+## Testing and CI
 
-## 🎯 How It Works
+Unit tests live under `src/**/*.test.ts` (speech recognition, transcript, caption size, keyboard, validation, route security).
 
-### Speech Recognition Flow
+GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: `npm ci` → lint → typecheck → test → build (Node 22). No repository secrets required for CI.
 
-```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│  User clicks    │────▶│ Request mic      │────▶│ Initialize      │
-│  microphone     │     │ permission       │     │ Web Speech API  │
-└─────────────────┘     └──────────────────┘     └────────┬────────┘
-                                                          │
-┌─────────────────┐     ┌──────────────────┐     ┌────────▼────────┐
-│  Add to         │◀────│ Process interim  │◀────│ Speech          │
-│  transcript     │     │ & final results  │     │ detected        │
-└────────┬────────┘     └──────────────────┘     └─────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Auto-scroll    │
-│  & continue     │
-└─────────────────┘
-```
+## Deployment
 
-### Architecture Overview
+Deploy as a standard Next.js app (e.g. Vercel). Production site: [https://aid.me](https://aid.me).
 
-#### Hooks
+App link files for the native shell:
 
-| Hook                      | Purpose                                                                                                      |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `useListening`            | Core speech recognition lifecycle — handles start/stop, results processing, error recovery, and auto-restart |
-| `useMicrophonePermission` | Manages permission state, queries browser Permission API, handles permission requests                        |
-| `useStartListening`       | High-level controls for starting, stopping, and toggling listening with navigation support                   |
-| `useViewportHeight`       | Sets CSS `--vh` variable for accurate mobile viewport height (fixes iOS Safari issues)                       |
+- `public/.well-known/apple-app-site-association`
+- `public/.well-known/assetlinks.json`
 
-#### Components
+## Privacy note
 
-| Component         | Purpose                                                                                         |
-| ----------------- | ----------------------------------------------------------------------------------------------- |
-| `Listen`          | Main transcription view — displays transcript, interim text, loading states, and error handling |
-| `Header`          | App header with microphone toggle button, logo, and help navigation                             |
-| `Instructions`    | Onboarding screen with usage instructions and start button                                      |
-| `ListeningStatus` | Visual indicator showing listening/not listening state                                          |
-| `Alert`           | Reusable alert component for errors, warnings, and info messages                                |
-| `Footer`          | Navigation links to About, Privacy, and Terms pages                                             |
+Transcription runs in the browser via the platform speech service. This repo does not implement server-side storage of audio or transcripts. See `/privacy` in the running app for the product privacy policy.
 
-#### State Management
+## Contributing
 
-The app uses [Zustand](https://zustand-demo.pmnd.rs/) for minimal global state:
+- `main` — production
+- `dev` — integration branch
 
-```typescript
-// useAppStore.ts
-interface AppState {
-  shouldListen: boolean; // Controls whether recognition should be active
-  setShouldListen: (value: boolean) => void;
-}
-```
+See [AGENTS.md](./AGENTS.md) and [spec.md](./spec.md). Branch from `dev` for ongoing work.
 
-### Configuration
+## License
 
-Adjust settings in `src/lib/constants.ts`:
-
-```typescript
-// Auto-stop listening after this duration (30 minutes)
-export const LISTENING_TIMEOUT_MS = 30 * 60 * 1000;
-
-// Maximum transcript sentences to retain in memory
-export const MAX_TRANSCRIPT_LENGTH = 200;
-
-// Delay before restarting recognition after it ends (ms)
-export const RECOGNITION_RESTART_DELAY_MS = 250;
-
-// Centralized error messages
-export const ERROR_MESSAGES = {
-  BROWSER_NOT_SUPPORTED: "...",
-  MIC_DENIED: "...",
-  MIC_PERMISSION_ERROR: "...",
-  MIC_NOT_ALLOWED: "...",
-};
-
-// Company info for legal pages
-export const COMPANY_INFO = { ... };
-
-// Navigation links
-export const NAV_LINKS = [ ... ];
-```
-
-## 🌐 Browser Support
-
-Aid.me requires the [Web Speech API](https://developer.mozilla.org/en-US/docs/Web/API/Web_Speech_API), which has varying support:
-
-| Browser | Support          | Notes                |
-| ------- | ---------------- | -------------------- |
-| Chrome  | ✅ Full support  | Recommended          |
-| Edge    | ✅ Full support  | Chromium-based       |
-| Safari  | ✅ Supported     | macOS & iOS          |
-| Opera   | ✅ Supported     | Chromium-based       |
-| Firefox | ❌ Not supported | No Web Speech API    |
-| Brave   | ⚠️ Partial       | May require enabling |
-
-> **Tip:** For the best experience, use Chrome or Edge on desktop, or Safari on iOS.
-
-## ⚠️ Important Notes
-
-### Microphone Permission
-
-You **must allow microphone access** when prompted for the app to function. The app:
-
-- Requests permission only when you click the microphone button
-- Provides clear feedback if permission is denied
-- Offers guidance on how to reset permissions in browser settings
-
-### Privacy & Security
-
-- **All speech processing happens locally** in your browser via the Web Speech API
-- **No audio data is sent to our servers** — we don't have any backend
-- Transcripts are stored only in memory and cleared on page refresh
-- The app works entirely client-side
-
-> **Note:** The Web Speech API may use cloud services (like Google's speech recognition in Chrome) depending on your browser. This is handled by your browser, not by Aid.me.
-
-### Known Limitations
-
-- Speech recognition may pause briefly between utterances (auto-restarts)
-- Background noise can affect accuracy — speakers should be within ~6 feet
-- Some browsers may require HTTPS for microphone access
-- Mobile browsers may have stricter autoplay/permission policies
-
-## 🔧 Troubleshooting
-
-### "Speech recognition is not supported"
-
-Your browser doesn't support the Web Speech API. Try Chrome, Edge, or Safari.
-
-### "Microphone access was denied"
-
-1. Click the lock/site settings icon in your browser's address bar
-2. Find "Microphone" permission
-3. Change it to "Allow"
-4. Refresh the page
-
-### Recognition keeps stopping
-
-This is normal behavior — the Web Speech API stops after periods of silence. Aid.me automatically restarts recognition. If it doesn't, click the microphone button again.
-
-### Poor transcription accuracy
-
-- Move closer to the speaker (within 6 feet)
-- Reduce background noise
-- Speak clearly and at a moderate pace
-- Ensure your microphone is working properly
-
-## 📚 Documentation
-
-| Document | Purpose |
-| -------- | ------- |
-| [AGENTS.md](./AGENTS.md) | Agent instructions, architecture, git workflow (`main` / `dev`) |
-| [spec.md](./spec.md) | Product spec, current state, and ordered roadmap |
-
-## 🤝 Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. **Fork** the repository
-2. **Work** on the `dev` branch (or branch from `dev` per maintainer preference)
-3. **Commit** your changes with a clear message
-4. **Open** a Pull Request targeting `dev` or `main` as requested by maintainers
-
-### Development Guidelines
-
-- Read [AGENTS.md](./AGENTS.md) before making changes
-- Follow the existing code style (TypeScript, functional components)
-- Use meaningful commit messages
-- Add comments for complex logic
-- Test across different browsers
-- Ensure accessibility is maintained
-- Run `npm run lint` and `npm run build` before committing
-
-### Roadmap
-
-Prioritized product milestones and acceptance criteria live in **[spec.md](./spec.md)**. Do not duplicate roadmap items here.
-
-## 📄 License
-
-This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0) - see the [LICENSE.md](LICENSE.md) file for details.
-
-## 📬 Contact & Links
-
-- **Website:** [https://aid.me](https://aid.me)
-- **Email:** [info@ignitechannel.com](mailto:info@ignitechannel.com)
-- **Repository:** [https://github.com/brown2020/aidme-app](https://github.com/brown2020/aidme-app)
-- **Issues:** [GitHub Issues](https://github.com/brown2020/aidme-app/issues)
-- **App Store:** [Aid Hearing on iOS](https://apps.apple.com/us/app/aid-me-hearing/id6473455500)
-
----
-
-<p align="center">
-  Made with ❤️ for accessibility<br>
-  <sub>© 2024 Aid.me Team</sub>
-</p>
+[GNU Affero General Public License v3](./LICENSE.md) (AGPL-3.0).
