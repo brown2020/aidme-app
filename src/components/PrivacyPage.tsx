@@ -51,7 +51,16 @@ export default function Privacy() {
         present is comfortable being transcribed.
       </p>
       <p>
-        We use Google Analytics to understand general usage of the site.
+        Invited email addresses are visible only to you. Other invitees see
+        only an unreadable fingerprint of their own address, used to check
+        their access.
+      </p>
+      <p>
+        To protect accounts and stored transcripts from automated abuse,
+        signed-in features use Google reCAPTCHA Enterprise through Firebase
+        App Check, which evaluates signals from your browser. We use Google
+        Analytics to understand general usage of the site and to notice when
+        live sharing fails.
       </p>
       <h4>Collection of your Personal Information</h4>
       <p>

@@ -51,15 +51,19 @@ There is no custom backend: the browser talks to Firebase directly, and `firesto
 ```
 aidme-app/
 ├── src/
-│   ├── app/                 # App Router: `/`, settings, about, privacy, terms
-│   ├── components/          # Listen UI, settings, legal pages, layout
-│   ├── hooks/               # Listening, mic permission, viewport, shortcuts
-│   ├── lib/                 # Speech recognition helpers, constants, validation
-│   ├── zustand/             # App preferences store
+│   ├── app/                 # App Router: /, settings, about, privacy, terms, sign-in, account, auth/email-link, s/[sessionId]
+│   ├── components/          # Listen UI, auth/, live/ (share + viewer), account/, legal pages, layout
+│   ├── hooks/               # Listening, mic permission, live sharing sync, sign-out, shortcuts
+│   ├── lib/                 # Speech helpers, constants, validation, liveSessionModel, firebase/ (lazy-loaded SDK)
+│   ├── zustand/             # App preferences, auth mirror, active live session
 │   ├── types/               # SpeechRecognition typings + WebView bridge
 │   └── assets/
+├── e2e/                     # Playwright end-to-end tests (run against Firebase emulators)
+├── rules/                   # Firestore security rules tests
+├── firestore.rules          # Access control for all stored data
+├── firestore.indexes.json
+├── firebase.json            # Deploy + emulator config
 ├── public/                  # Icons, manifest, robots, Apple/Android app links
-├── vitest.config.ts
 └── .github/workflows/ci.yml
 ```
 
@@ -101,18 +105,28 @@ Without them the app still builds and captions work; sign-in and sharing show a 
 | `npm test` | Vitest once |
 | `npm run test:ci` | Vitest with `CI=true` |
 | `npm run test:rules` | Firestore security rules tests in the emulator (needs Java 21) |
+| `npm run test:e2e` | Playwright end-to-end tests against the Auth + Firestore emulators (needs Java 21; run `npx playwright install chromium` once) |
 | `npm run doctor` | React Doctor full scan |
 | `npm run deploy:rules` | Deploy `firestore.rules` and indexes to the `aidmehearing` project |
 
 ## Testing and CI
 
-Unit tests live under `src/**/*.test.ts`. Firestore security rules tests live in `rules/` and run against the emulator.
+- Unit tests: `src/**/*.test.ts`, including a contract test that keeps Firestore field names in code and in `firestore.rules` identical.
+- Security rules: `rules/`, run against the Firestore emulator.
+- End to end: `e2e/` builds the app into `.next-e2e` pointed at the emulators, fakes the microphone and speech recognition, and covers signed-out captions (no Firestore download), sign-in, live sharing with word-by-word streaming, viewer stop/resume/leave, account deletion, keyboard use, and axe checks on desktop and phone.
 
-GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: lint → typecheck → unit tests → build, plus a separate Firestore rules job (Node 22, Java 21). No repository secrets required for CI.
+GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs runs three jobs: checks (lint, typecheck, unit tests, build), Firestore rules, and end-to-end. No repository secrets are required.
 
 ## Deployment
 
-Deploy as a standard Next.js app (e.g. Vercel). Production site: [https://aid.me](https://aid.me).
+Deploy as a standard Next.js app on Vercel (project `aidme-app`, Ignite team). Production site: [https://aid.me](https://aid.me).
+
+Production runbook:
+
+1. Set every `NEXT_PUBLIC_FIREBASE_*` variable from `.env.example` in Vercel for Production and Preview (`vercel env add <NAME> production --scope ignitechannel`), then redeploy. Without them accounts show "not available".
+2. After changing `firestore.rules` or `firestore.indexes.json`, run `npm run test:rules`, then `npm run deploy:rules`. Rules are not deployed by Vercel.
+3. App Check (reCAPTCHA Enterprise key in the `aidmehearing` Google Cloud project) is enforced for Firestore. A new domain must be added to that key, and to Firebase Auth's authorized domains, before sign-in works there.
+4. Live-sharing failures are reported to Google Analytics as `live_write_failed`, `session_list_failed`, and similar events (see `reportOperationalEvent`).
 
 App link files for the native shell:
 
@@ -121,7 +135,7 @@ App link files for the native shell:
 
 ## Privacy note
 
-Transcription runs in the browser via the platform speech service. Audio is never stored. Transcript text is stored in Firestore only while a signed-in user is live sharing, is readable only by that user and the verified emails they invite, and can be deleted from `/account`. See `/privacy` in the running app.
+Transcription runs in the browser via the platform speech service. Audio is never stored. Transcript text is stored in Firestore only while a signed-in user is live sharing, is readable only by that user and the verified emails they invite, and can be deleted from `/account`. Invited emails are stored owner-only; sessions keep only SHA-256 fingerprints of them. See `/privacy` in the running app.
 
 ## Contributing
 

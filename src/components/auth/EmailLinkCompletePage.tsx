@@ -4,11 +4,8 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from "react"
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import {
-  EMAIL_FOR_SIGN_IN_KEY,
-  completeEmailLinkSignIn,
-  isEmailSignInLink,
-} from "@/lib/firebase/auth";
+import { completeEmailLinkSignIn, isEmailSignInLink } from "@/lib/firebase/auth";
+import { EMAIL_FOR_SIGN_IN_KEY } from "@/lib/firebase/config";
 import { getAuthErrorMessage } from "@/lib/firebase/authErrors";
 import { AUTH_ERROR_MESSAGES } from "@/lib/constants";
 import { getSafeRedirect } from "@/lib/redirect";

@@ -12,7 +12,7 @@
       "collectionGroup": "sessions",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "viewerEmails", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "viewerKeys", "arrayConfig": "CONTAINS" },
         { "fieldPath": "createdAt", "order": "DESCENDING" }
       ]
     }

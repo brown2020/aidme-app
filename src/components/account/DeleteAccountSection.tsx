@@ -11,25 +11,16 @@ import {
   reauthenticateWithGoogle,
   reauthenticateWithPassword,
 } from "@/lib/firebase/account";
-import { EMAIL_FOR_SIGN_IN_KEY } from "@/lib/firebase/auth";
 import { getAuthErrorMessage } from "@/lib/firebase/authErrors";
+import { clearLocalAccountState } from "@/lib/accountCleanup";
 import { ACCOUNT_DELETE_MESSAGES } from "@/lib/constants";
 import { logger } from "@/lib/logger";
-import { useAppStore } from "@/zustand/useAppStore";
 import type { AuthUser } from "@/zustand/useAuthStore";
-import { useLiveSessionStore } from "@/zustand/useLiveSessionStore";
 import { Button } from "../ui/Button";
 import { FormMessage } from "../ui/FormMessage";
 import { TextField } from "../ui/TextField";
 import { PasswordField } from "../auth/PasswordField";
 import { useSignOut } from "@/hooks/useSignOut";
-
-function clearLocalAccountState() {
-  useAppStore.getState().setShouldListen(false);
-  useLiveSessionStore.getState().setActiveSessionId(null);
-  window.localStorage.removeItem(EMAIL_FOR_SIGN_IN_KEY);
-  window.sessionStorage.removeItem("aidme-app_live_session_v1");
-}
 
 function errorMessage(error: unknown): string {
   if (error instanceof AccountRemovalIncompleteError) return ACCOUNT_DELETE_MESSAGES.PARTIAL;

@@ -1,11 +1,55 @@
 import { describe, expect, it } from "vitest";
+import { createHash } from "crypto";
 import {
   buildMailtoUrl,
   buildShareUrl,
+  emailKey,
+  latestInterimText,
+  liveSessionSchema,
   parseViewerEmails,
   sessionIdSchema,
   toLineText,
 } from "./liveSessionModel";
+
+describe("emailKey", () => {
+  it("is the lowercase hex SHA-256 of the normalized email", async () => {
+    const expected = createHash("sha256").update("viewer@example.com").digest("hex");
+    expect(await emailKey("  Viewer@Example.COM ")).toBe(expected);
+  });
+});
+
+describe("latestInterimText", () => {
+  it("returns the text with the highest sequence, or empty", () => {
+    expect(latestInterimText([])).toBe("");
+    expect(
+      latestInterimText([
+        { text: "how are", seq: 11 },
+        { text: "how are you", seq: 12 },
+        { text: "how", seq: 10 },
+      ])
+    ).toBe("how are you");
+  });
+});
+
+describe("liveSessionSchema", () => {
+  const valid = {
+    ownerUid: "u1",
+    ownerName: "Owner",
+    ownerEmail: "owner@example.com",
+    title: "Conversation",
+    status: "live",
+    language: "en-US",
+    viewerKeys: ["abc"],
+    createdAt: new Date(),
+    updatedAt: null,
+  };
+
+  it("accepts a well-formed session and rejects unknown statuses or plain email lists", () => {
+    expect(liveSessionSchema.safeParse(valid).success).toBe(true);
+    expect(liveSessionSchema.safeParse({ ...valid, status: "paused" }).success).toBe(false);
+    expect(liveSessionSchema.safeParse({ ...valid, viewerKeys: undefined }).success).toBe(false);
+  });
+});
 
 describe("parseViewerEmails", () => {
   it("splits, lowercases, and dedupes addresses", () => {

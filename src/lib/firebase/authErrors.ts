@@ -1,6 +1,5 @@
-import { FirebaseError } from "firebase/app";
 import { AUTH_ERROR_MESSAGES } from "@/lib/constants";
-import { FirebaseNotConfiguredError } from "./client";
+import { FirebaseNotConfiguredError } from "./config";
 
 const MESSAGES_BY_CODE: Record<string, string | null> = {
   "auth/invalid-credential": AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS,
@@ -39,11 +38,9 @@ export function getAuthErrorMessage(error: unknown): string | null {
     return AUTH_ERROR_MESSAGES.NOT_CONFIGURED;
   }
   const code =
-    error instanceof FirebaseError
-      ? error.code
-      : typeof error === "object" && error !== null && "code" in error
-        ? String((error as { code: unknown }).code)
-        : null;
+    typeof error === "object" && error !== null && "code" in error
+      ? String((error as { code: unknown }).code)
+      : null;
   if (code && code in MESSAGES_BY_CODE) return MESSAGES_BY_CODE[code];
   return AUTH_ERROR_MESSAGES.GENERIC;
 }

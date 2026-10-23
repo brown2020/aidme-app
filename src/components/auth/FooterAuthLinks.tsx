@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { useSignOut } from "@/hooks/useSignOut";
 

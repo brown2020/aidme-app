@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Loader2, LogOut } from "lucide-react";
 import { updateDisplayName } from "@/lib/firebase/auth";
 import { getAuthErrorMessage } from "@/lib/firebase/authErrors";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { AUTH_ERROR_MESSAGES } from "@/lib/constants";
 import { useAuthStore, type AuthUser } from "@/zustand/useAuthStore";
 import { useSignOut } from "@/hooks/useSignOut";

@@ -2,17 +2,15 @@
 
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
-import { EMAIL_FOR_SIGN_IN_KEY, signOutUser } from "@/lib/firebase/auth";
+import { clearLocalAccountState } from "@/lib/accountCleanup";
 import { getAuthErrorMessage } from "@/lib/firebase/authErrors";
-import { setSessionStatus } from "@/lib/firebase/liveSessions";
-import { logger } from "@/lib/logger";
+import { reportOperationalEvent } from "@/lib/monitoring";
 import { getSafeRedirect } from "@/lib/redirect";
-import { useAppStore } from "@/zustand/useAppStore";
 import { useLiveSessionStore } from "@/zustand/useLiveSessionStore";
 
 /**
- * Hard sign-out: stops listening, ends any live share, signs out of Firebase,
- * clears auth-related local state, and reloads to a clean signed-out home.
+ * Hard sign-out: ends any live share, signs out of Firebase, clears
+ * account-related local state, and reloads to a clean signed-out page.
  */
 export function useSignOut(): {
   signOut: (redirectTo?: string) => Promise<void>;
@@ -22,26 +20,22 @@ export function useSignOut(): {
 
   const signOut = useCallback(async (redirectTo = "/") => {
     setIsSigningOut(true);
-    useAppStore.getState().setShouldListen(false);
-
-    const { activeSessionId, setActiveSessionId } = useLiveSessionStore.getState();
-    if (activeSessionId) {
-      await setSessionStatus(activeSessionId, "ended").catch((error: unknown) =>
-        logger.warn("Could not end live session during sign-out", error)
-      );
-      setActiveSessionId(null);
-    }
-
+    const activeSessionId = useLiveSessionStore.getState().activeSessionId;
     try {
+      if (activeSessionId) {
+        const { setSessionStatus } = await import("@/lib/firebase/liveSessions");
+        await setSessionStatus(activeSessionId, "ended").catch((error: unknown) =>
+          reportOperationalEvent("end_session_on_sign_out_failed", error)
+        );
+      }
+      const { signOutUser } = await import("@/lib/firebase/auth");
       await signOutUser();
     } catch (error) {
       setIsSigningOut(false);
       toast.error(getAuthErrorMessage(error) ?? "Couldn't sign out. Please try again.");
       return;
     }
-
-    window.localStorage.removeItem(EMAIL_FOR_SIGN_IN_KEY);
-    window.sessionStorage.removeItem("aidme-app_live_session_v1");
+    clearLocalAccountState();
     window.location.assign(getSafeRedirect(redirectTo));
   }, []);
 

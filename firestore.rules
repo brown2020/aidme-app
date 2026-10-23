@@ -1,8 +1,14 @@
 rules_version = '2';
 
 // Live shared transcripts.
-// sessions/{sessionId}: owned by one user, readable by invited verified emails.
-// sessions/{sessionId}/lines/{lineId}: append-only sentences written by the owner.
+// sessions/{sessionId}: owned by one user; invitees are stored only as
+//   SHA-256 fingerprints of their email (viewerKeys).
+// sessions/{sessionId}/private/invites: the invited emails, owner-only.
+// sessions/{sessionId}/lines/{lineId}: append-only finished sentences.
+// sessions/{sessionId}/interim/{slot}: words still being spoken, rotated
+//   across four documents to stay under per-document write limits.
+//
+// Field lists must match src/lib/liveSessionModel.ts (see firestoreSchema.test.ts).
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -20,18 +26,23 @@ service cloud.firestore {
       return request.auth.token.email.lower();
     }
 
+    // Must match emailKey() in liveSessionModel.ts.
+    function viewerKey() {
+      return hashing.sha256(myEmail()).toHexString().lower();
+    }
+
     function isOwner(data) {
       return signedIn() && data.ownerUid == request.auth.uid;
     }
 
     // Unverified accounts could claim any address, so viewers must be verified.
     function isViewer(data) {
-      return hasVerifiedEmail() && myEmail() in data.viewerEmails;
+      return hasVerifiedEmail() && viewerKey() in data.viewerKeys;
     }
 
     function sessionKeys() {
       return ['ownerUid', 'ownerName', 'ownerEmail', 'title', 'status',
-              'language', 'viewerEmails', 'createdAt', 'updatedAt'];
+              'language', 'viewerKeys', 'createdAt', 'updatedAt'];
     }
 
     function validSession(d) {
@@ -41,7 +52,7 @@ service cloud.firestore {
         && d.title is string && d.title.size() <= 120
         && d.status in ['live', 'ended']
         && d.language is string && d.language.size() <= 20
-        && d.viewerEmails is list && d.viewerEmails.size() <= 10
+        && d.viewerKeys is list && d.viewerKeys.size() <= 10
         && d.updatedAt == request.time;
     }
 
@@ -62,12 +73,12 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && validSession(request.resource.data);
 
-      // A viewer may remove only their own email (e.g. when deleting their account).
+      // A viewer may remove only their own fingerprint (leaving, or deleting their account).
       allow update: if isViewer(resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerEmails', 'updatedAt'])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerKeys', 'updatedAt'])
         && request.resource.data.updatedAt == request.time
-        && request.resource.data.viewerEmails.toSet()
-             == resource.data.viewerEmails.toSet().difference([myEmail()].toSet());
+        && request.resource.data.viewerKeys.toSet()
+             == resource.data.viewerKeys.toSet().difference([viewerKey()].toSet());
 
       allow delete: if isOwner(resource.data);
 
@@ -75,17 +86,37 @@ service cloud.firestore {
         return get(/databases/$(database)/documents/sessions/$(sessionId)).data;
       }
 
-      // The sentence still being spoken; overwritten several times per second.
-      match /interim/{docId} {
+      // Lets the invites document be written in the same batch that creates the session.
+      function sessionAfter() {
+        return getAfter(/databases/$(database)/documents/sessions/$(sessionId)).data;
+      }
+
+      match /private/{docId} {
+        allow read: if isOwner(session());
+
+        allow create, update: if docId == 'invites'
+          && isOwner(sessionAfter())
+          && request.resource.data.keys().hasOnly(['emails', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['emails', 'updatedAt'])
+          && request.resource.data.emails is list
+          && request.resource.data.emails.size() <= 10
+          && request.resource.data.updatedAt == request.time;
+
+        allow delete: if isOwner(session());
+      }
+
+      match /interim/{slot} {
         allow read: if isOwner(session()) || isViewer(session());
 
-        allow create, update: if docId == 'current'
+        allow create, update: if slot in ['0', '1', '2', '3']
           && isOwner(session())
           && session().status == 'live'
-          && request.resource.data.keys().hasOnly(['text', 'updatedAt'])
-          && request.resource.data.keys().hasAll(['text', 'updatedAt'])
+          && request.resource.data.keys().hasOnly(['text', 'seq', 'updatedAt'])
+          && request.resource.data.keys().hasAll(['text', 'seq', 'updatedAt'])
           && request.resource.data.text is string
           && request.resource.data.text.size() <= 2000
+          && request.resource.data.seq is int
+          && request.resource.data.seq >= 0
           && request.resource.data.updatedAt == request.time;
 
         allow delete: if isOwner(session());

@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Copy, Loader2, Mail, Share2, X } from "lucide-react";
@@ -20,6 +20,7 @@ import { copyTextToClipboard } from "@/lib/transcript";
 import { LIVE_SESSION_MESSAGES, MAX_SESSION_VIEWERS } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { useCanNativeShare, useOrigin } from "@/hooks/useBrowserValue";
+import { useSessionInvites } from "@/hooks/useSessionInvites";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useAuthStore, type AuthUser } from "@/zustand/useAuthStore";
 import { useLiveSessionStore } from "@/zustand/useLiveSessionStore";
@@ -38,44 +39,57 @@ function validateInvites(input: string, ownerEmail: string | null): string[] | s
 
 interface LiveShareDialogProps {
   session: LiveSession | null;
+  onClose: () => void;
 }
 
-/** Start, manage, and stop a live shared transcript */
-export const LiveShareDialog = forwardRef<HTMLDialogElement, LiveShareDialogProps>(
-  function LiveShareDialog({ session }, ref) {
-    const user = useAuthStore((s) => s.user);
-    const close = () => {
-      if (ref && typeof ref !== "function") ref.current?.close();
-    };
+/** Start, manage, and stop a live shared transcript; opens as a modal on mount */
+export default function LiveShareDialog({ session, onClose }: LiveShareDialogProps) {
+  const user = useAuthStore((s) => s.user);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const onCloseRef = useRef(onClose);
 
-    if (!user) return null;
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
-    return (
-      <dialog
-        ref={ref}
-        aria-labelledby="live-share-title"
-        className="m-auto w-[min(32rem,calc(100vw-2rem))] max-h-[85dvh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950 p-0 text-base font-normal tracking-normal text-white backdrop:bg-black/70"
-      >
-        <div className="flex flex-col gap-5 p-5">
-          <div className="flex items-start justify-between gap-4">
-            <h2 id="live-share-title" className="text-xl font-semibold">
-              {session ? "Sharing live" : "Share live captions"}
-            </h2>
-            <button
-              type="button"
-              onClick={close}
-              aria-label="Close"
-              className="rounded-md p-1 text-gray-300 hover:bg-slate-800 hover:text-white"
-            >
-              <X size={20} aria-hidden />
-            </button>
-          </div>
-          <DialogBody user={user} session={session} onClose={close} />
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    dialog.showModal();
+    const handleClose = () => onCloseRef.current();
+    dialog.addEventListener("close", handleClose);
+    return () => dialog.removeEventListener("close", handleClose);
+  }, []);
+
+  const close = () => dialogRef.current?.close();
+
+  if (!user) return null;
+
+  return (
+    <dialog
+      ref={dialogRef}
+      aria-labelledby="live-share-title"
+      className="m-auto w-[min(32rem,calc(100vw-2rem))] max-h-[85dvh] overflow-y-auto rounded-xl border border-slate-700 bg-slate-950 p-0 text-base font-normal tracking-normal text-white backdrop:bg-black/70"
+    >
+      <div className="flex flex-col gap-5 p-5">
+        <div className="flex items-start justify-between gap-4">
+          <h2 id="live-share-title" className="text-xl font-semibold">
+            {session ? "Sharing live" : "Share live captions"}
+          </h2>
+          <button
+            type="button"
+            onClick={close}
+            aria-label="Close"
+            className="rounded-md p-1 text-gray-300 hover:bg-slate-800 hover:text-white"
+          >
+            <X size={20} aria-hidden />
+          </button>
         </div>
-      </dialog>
-    );
-  }
-);
+        <DialogBody user={user} session={session} onClose={close} />
+      </div>
+    </dialog>
+  );
+}
 
 function DialogBody({
   user,
@@ -184,6 +198,7 @@ function ActiveSessionPanel({
   onClose: () => void;
 }) {
   const setActiveSessionId = useLiveSessionStore((s) => s.setActiveSessionId);
+  const invitedEmails = useSessionInvites(session);
   const [error, setError] = useState<string | null>(null);
   const [isStopping, setIsStopping] = useState(false);
 
@@ -210,9 +225,10 @@ function ActiveSessionPanel({
       </p>
       <ShareLinkActions
         session={session}
+        invitedEmails={invitedEmails}
         ownerName={user.displayName || user.email || "Someone"}
       />
-      <InvitedList user={user} session={session} onError={setError} />
+      <InvitedList user={user} session={session} invitedEmails={invitedEmails} onError={setError} />
       {error && <FormMessage tone="error">{error}</FormMessage>}
       <Button variant="danger" onClick={() => void handleStop()} disabled={isStopping}>
         {isStopping && <Loader2 size={16} className="animate-spin" aria-hidden />}
@@ -222,7 +238,15 @@ function ActiveSessionPanel({
   );
 }
 
-function ShareLinkActions({ session, ownerName }: { session: LiveSession; ownerName: string }) {
+function ShareLinkActions({
+  session,
+  invitedEmails,
+  ownerName,
+}: {
+  session: LiveSession;
+  invitedEmails: string[];
+  ownerName: string;
+}) {
   const origin = useOrigin();
   const canNativeShare = useCanNativeShare();
   const shareUrl = buildShareUrl(origin, session.id);
@@ -257,7 +281,7 @@ function ShareLinkActions({ session, ownerName }: { session: LiveSession; ownerN
       </div>
       <div className="flex flex-wrap gap-2">
         <a
-          href={buildMailtoUrl(session.viewerEmails, LIVE_SESSION_MESSAGES.SHARE_SUBJECT, shareMessage)}
+          href={buildMailtoUrl(invitedEmails, LIVE_SESSION_MESSAGES.SHARE_SUBJECT, shareMessage)}
           className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium hover:bg-blue-700"
         >
           <Mail size={16} aria-hidden />
@@ -277,10 +301,12 @@ function ShareLinkActions({ session, ownerName }: { session: LiveSession; ownerN
 function InvitedList({
   user,
   session,
+  invitedEmails,
   onError,
 }: {
   user: AuthUser;
   session: LiveSession;
+  invitedEmails: string[];
   onError: (message: string | null) => void;
 }) {
   const [invites, setInvites] = useState("");
@@ -308,7 +334,7 @@ function InvitedList({
       onError(emails);
       return;
     }
-    const merged = [...new Set([...session.viewerEmails, ...emails])];
+    const merged = [...new Set([...invitedEmails, ...emails])];
     if (merged.length > MAX_SESSION_VIEWERS) {
       onError(LIVE_SESSION_MESSAGES.TOO_MANY_VIEWERS);
       return;
@@ -319,10 +345,10 @@ function InvitedList({
   return (
     <div className="flex flex-col gap-2">
       <span className="text-sm font-medium text-gray-200">
-        Invited ({session.viewerEmails.length}/{MAX_SESSION_VIEWERS})
+        Invited ({invitedEmails.length}/{MAX_SESSION_VIEWERS})
       </span>
       <ul className="flex flex-col gap-1">
-        {session.viewerEmails.map((email) => (
+        {invitedEmails.map((email) => (
           <li
             key={email}
             className="flex items-center justify-between gap-2 rounded-md bg-slate-900 px-3 py-2 text-sm"
@@ -330,8 +356,8 @@ function InvitedList({
             <span className="truncate">{email}</span>
             <button
               type="button"
-              disabled={isSaving || session.viewerEmails.length === 1}
-              onClick={() => void saveViewers(session.viewerEmails.filter((e) => e !== email))}
+              disabled={isSaving || invitedEmails.length === 1}
+              onClick={() => void saveViewers(invitedEmails.filter((e) => e !== email))}
               aria-label={`Remove ${email}`}
               className="rounded p-1 text-gray-400 hover:bg-slate-800 hover:text-white disabled:opacity-40"
             >

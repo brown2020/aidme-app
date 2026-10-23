@@ -1,12 +1,15 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { Radio } from "lucide-react";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { useActiveLiveSession } from "@/hooks/useActiveLiveSession";
 import { useAuthStore } from "@/zustand/useAuthStore";
-import { LiveShareDialog } from "./LiveShareDialog";
+
+// Loaded on first open so the transcript screen doesn't ship Firestore up front.
+const LiveShareDialog = dynamic(() => import("./LiveShareDialog"), { ssr: false });
 
 const buttonClassName =
   "inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors px-3 py-2 text-sm text-white";
@@ -18,7 +21,7 @@ const buttonClassName =
 export function LiveShareButton() {
   const status = useAuthStore((s) => s.status);
   const session = useActiveLiveSession();
-  const dialogRef = useRef<HTMLDialogElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
 
   if (!isFirebaseConfigured() || status === "unknown") return null;
 
@@ -39,14 +42,14 @@ export function LiveShareButton() {
     <>
       <button
         type="button"
-        onClick={() => dialogRef.current?.showModal()}
+        onClick={() => setIsOpen(true)}
         className={`${buttonClassName} ${isLive ? "bg-blue-600 hover:bg-blue-700" : "bg-slate-800 hover:bg-slate-700"}`}
         aria-haspopup="dialog"
       >
         <Radio size={16} aria-hidden className={isLive ? "animate-pulse" : undefined} />
-        {isLive ? `Live · ${session.viewerEmails.length} invited` : "Share live"}
+        {isLive ? `Live · ${session.viewerKeys.length} invited` : "Share live"}
       </button>
-      <LiveShareDialog ref={dialogRef} session={session} />
+      {isOpen && <LiveShareDialog session={session} onClose={() => setIsOpen(false)} />}
     </>
   );
 }

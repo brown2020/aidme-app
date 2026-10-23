@@ -13,10 +13,8 @@ import {
   type ActionCodeSettings,
 } from "firebase/auth";
 import { getFirebaseAuth } from "./client";
+import { EMAIL_FOR_SIGN_IN_KEY } from "./config";
 import { useAuthStore } from "@/zustand/useAuthStore";
-
-/** Remembers which address requested an email link so the link can finish sign-in on this device */
-export const EMAIL_FOR_SIGN_IN_KEY = "aidme-app_email_for_sign_in";
 
 function actionUrl(path: string): ActionCodeSettings {
   return { url: `${window.location.origin}${path}` };

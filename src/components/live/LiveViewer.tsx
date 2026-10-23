@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Loader2, Play, Square } from "lucide-react";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { leaveSession } from "@/lib/firebase/liveSessions";
 import { normalizeEmail, type LiveSession, type TranscriptLine } from "@/lib/liveSessionModel";
 import { logger } from "@/lib/logger";

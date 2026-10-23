@@ -1,3 +1,4 @@
+import { createHash } from "crypto";
 import { readFileSync } from "fs";
 import { join } from "path";
 import {
@@ -19,6 +20,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Firestore,
 } from "firebase/firestore";
 import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
@@ -27,6 +29,9 @@ const OWNER = { uid: "owner", email: "owner@example.com" };
 const VIEWER = { uid: "viewer", email: "viewer@example.com" };
 const STRANGER = { uid: "stranger", email: "stranger@example.com" };
 const SESSION_ID = "session1234567890abcd";
+
+/** Same algorithm as emailKey() in src/lib/liveSessionModel.ts */
+const keyOf = (email: string) => createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
 
 let env: RulesTestEnvironment;
 
@@ -44,7 +49,7 @@ function sessionData(overrides: Record<string, unknown> = {}) {
     title: "Conversation",
     status: "live",
     language: "en-US",
-    viewerEmails: [VIEWER.email],
+    viewerKeys: [keyOf(VIEWER.email)],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     ...overrides,
@@ -55,6 +60,10 @@ async function seedSession(overrides: Record<string, unknown> = {}) {
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore() as unknown as Firestore;
     await setDoc(doc(db, "sessions", SESSION_ID), sessionData(overrides));
+    await setDoc(doc(db, "sessions", SESSION_ID, "private", "invites"), {
+      emails: [VIEWER.email],
+      updatedAt: serverTimestamp(),
+    });
     await setDoc(doc(db, "sessions", SESSION_ID, "lines", "line1"), {
       text: "Hello there.",
       createdAt: serverTimestamp(),
@@ -78,36 +87,39 @@ beforeEach(async () => {
 });
 
 describe("session creation", () => {
-  it("lets a verified user create their own live session", async () => {
-    await assertSucceeds(addDoc(collection(dbFor(OWNER), "sessions"), sessionData()));
+  it("lets a verified user create a session and its private invites in one batch", async () => {
+    const db = dbFor(OWNER);
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, "sessions"));
+    batch.set(ref, sessionData());
+    batch.set(doc(db, "sessions", ref.id, "private", "invites"), {
+      emails: [VIEWER.email],
+      updatedAt: serverTimestamp(),
+    });
+    await assertSucceeds(batch.commit());
   });
 
-  it("rejects an unverified email", async () => {
+  it("rejects an unverified email and signed-out writes", async () => {
     await assertFails(addDoc(collection(dbFor(OWNER, false), "sessions"), sessionData()));
+    const anon = env.unauthenticatedContext().firestore() as unknown as Firestore;
+    await assertFails(addDoc(collection(anon, "sessions"), sessionData()));
   });
 
-  it("rejects signed-out writes", async () => {
-    const db = env.unauthenticatedContext().firestore() as unknown as Firestore;
-    await assertFails(addDoc(collection(db, "sessions"), sessionData()));
-  });
-
-  it("rejects creating a session owned by someone else", async () => {
+  it("rejects a session owned by someone else or a forged owner email", async () => {
     await assertFails(
       addDoc(collection(dbFor(STRANGER), "sessions"), sessionData({ ownerEmail: STRANGER.email }))
     );
-  });
-
-  it("rejects a forged owner email", async () => {
     await assertFails(
       addDoc(collection(dbFor(OWNER), "sessions"), sessionData({ ownerEmail: "ceo@example.com" }))
     );
   });
 
-  it("rejects unexpected fields and too many viewers", async () => {
+  it("rejects unexpected fields, plain-email invite lists, and too many viewers", async () => {
     const db = dbFor(OWNER);
     await assertFails(addDoc(collection(db, "sessions"), sessionData({ isAdmin: true })));
-    const eleven = Array.from({ length: 11 }, (_, i) => `v${i}@example.com`);
-    await assertFails(addDoc(collection(db, "sessions"), sessionData({ viewerEmails: eleven })));
+    await assertFails(addDoc(collection(db, "sessions"), sessionData({ viewerEmails: [VIEWER.email] })));
+    const eleven = Array.from({ length: 11 }, (_, i) => keyOf(`v${i}@example.com`));
+    await assertFails(addDoc(collection(db, "sessions"), sessionData({ viewerKeys: eleven })));
   });
 });
 
@@ -131,17 +143,30 @@ describe("session reads", () => {
     await assertFails(getDoc(doc(anon, "sessions", SESSION_ID)));
   });
 
+  it("keeps invited emails owner-only", async () => {
+    await assertSucceeds(getDoc(doc(dbFor(OWNER), "sessions", SESSION_ID, "private", "invites")));
+    await assertFails(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "private", "invites")));
+    await assertFails(
+      setDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "private", "invites"), {
+        emails: [],
+        updatedAt: serverTimestamp(),
+      })
+    );
+  });
+
   it("allows the account-page list queries only for matching owner or invitee", async () => {
     await assertSucceeds(
       getDocs(query(collection(dbFor(OWNER), "sessions"), where("ownerUid", "==", OWNER.uid)))
     );
     await assertSucceeds(
       getDocs(
-        query(collection(dbFor(VIEWER), "sessions"), where("viewerEmails", "array-contains", VIEWER.email))
+        query(collection(dbFor(VIEWER), "sessions"), where("viewerKeys", "array-contains", keyOf(VIEWER.email)))
       )
     );
     await assertFails(
-      getDocs(query(collection(dbFor(STRANGER), "sessions"), where("ownerUid", "==", OWNER.uid)))
+      getDocs(
+        query(collection(dbFor(STRANGER), "sessions"), where("viewerKeys", "array-contains", keyOf(VIEWER.email)))
+      )
     );
     await assertFails(getDocs(collection(dbFor(STRANGER), "sessions")));
   });
@@ -154,28 +179,35 @@ describe("session updates and deletes", () => {
     const ref = doc(dbFor(OWNER), "sessions", SESSION_ID);
     await assertSucceeds(updateDoc(ref, { status: "ended", updatedAt: serverTimestamp() }));
     await assertSucceeds(
-      updateDoc(ref, { viewerEmails: ["new@example.com"], updatedAt: serverTimestamp() })
+      updateDoc(ref, { viewerKeys: [keyOf("new@example.com")], updatedAt: serverTimestamp() })
     );
   });
 
-  it("lets a viewer remove only their own email", async () => {
-    await seedSession({ viewerEmails: [VIEWER.email, "other@example.com"] });
+  it("lets a viewer remove only their own fingerprint", async () => {
+    await seedSession({ viewerKeys: [keyOf(VIEWER.email), keyOf("other@example.com")] });
     const ref = doc(dbFor(VIEWER), "sessions", SESSION_ID);
     await assertFails(
-      updateDoc(ref, { viewerEmails: [VIEWER.email], updatedAt: serverTimestamp() })
+      updateDoc(ref, { viewerKeys: [keyOf(VIEWER.email)], updatedAt: serverTimestamp() })
     );
     await assertFails(
-      updateDoc(ref, { viewerEmails: ["other@example.com"], status: "ended", updatedAt: serverTimestamp() })
+      updateDoc(ref, {
+        viewerKeys: [keyOf("other@example.com")],
+        status: "ended",
+        updatedAt: serverTimestamp(),
+      })
     );
     await assertSucceeds(
-      updateDoc(ref, { viewerEmails: arrayRemove(VIEWER.email), updatedAt: serverTimestamp() })
+      updateDoc(ref, { viewerKeys: arrayRemove(keyOf(VIEWER.email)), updatedAt: serverTimestamp() })
     );
   });
 
-  it("blocks viewers from editing or deleting", async () => {
+  it("blocks viewers from adding people or deleting", async () => {
     const ref = doc(dbFor(VIEWER), "sessions", SESSION_ID);
     await assertFails(
-      updateDoc(ref, { viewerEmails: [VIEWER.email, STRANGER.email], updatedAt: serverTimestamp() })
+      updateDoc(ref, {
+        viewerKeys: [keyOf(VIEWER.email), keyOf(STRANGER.email)],
+        updatedAt: serverTimestamp(),
+      })
     );
     await assertFails(deleteDoc(ref));
   });
@@ -190,6 +222,7 @@ describe("session updates and deletes", () => {
   });
 
   it("lets the owner delete", async () => {
+    await assertSucceeds(deleteDoc(doc(dbFor(OWNER), "sessions", SESSION_ID, "private", "invites")));
     await assertSucceeds(deleteDoc(doc(dbFor(OWNER), "sessions", SESSION_ID)));
   });
 });
@@ -227,29 +260,36 @@ describe("transcript lines", () => {
     await assertFails(addDoc(lines, { ...line(), speaker: "someone" }));
   });
 
-  it("lets the owner stream in-progress text that viewers can read", async () => {
+  it("lets the owner stream in-progress text across four slots that viewers can read", async () => {
     await seedSession();
-    const ownerRef = doc(dbFor(OWNER), "sessions", SESSION_ID, "interim", "current");
-    await assertSucceeds(setDoc(ownerRef, { text: "how are", updatedAt: serverTimestamp() }));
-    await assertSucceeds(setDoc(ownerRef, { text: "how are you", updatedAt: serverTimestamp() }));
-    await assertSucceeds(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "interim", "current")));
-    await assertFails(getDoc(doc(dbFor(STRANGER), "sessions", SESSION_ID, "interim", "current")));
+    const owner = dbFor(OWNER);
+    for (const slot of ["0", "1", "2", "3"]) {
+      await assertSucceeds(
+        setDoc(doc(owner, "sessions", SESSION_ID, "interim", slot), {
+          text: `words ${slot}`,
+          seq: Number(slot) + 1,
+          updatedAt: serverTimestamp(),
+        })
+      );
+    }
+    await assertSucceeds(getDocs(collection(dbFor(VIEWER), "sessions", SESSION_ID, "interim")));
+    await assertFails(getDocs(collection(dbFor(STRANGER), "sessions", SESSION_ID, "interim")));
   });
 
-  it("restricts in-progress text to the owner, one document, while live", async () => {
+  it("restricts in-progress text to the owner, valid slots, and live sessions", async () => {
     await seedSession();
-    const interim = (db: Firestore, id = "current") => doc(db, "sessions", SESSION_ID, "interim", id);
-    await assertFails(setDoc(interim(dbFor(VIEWER)), { text: "spoof", updatedAt: serverTimestamp() }));
-    await assertFails(setDoc(interim(dbFor(OWNER), "other"), { text: "x", updatedAt: serverTimestamp() }));
-    await assertFails(
-      setDoc(interim(dbFor(OWNER)), { text: "x", updatedAt: serverTimestamp(), extra: true })
-    );
+    const interim = (db: Firestore, slot = "0") => doc(db, "sessions", SESSION_ID, "interim", slot);
+    const ok = { text: "x", seq: 1, updatedAt: serverTimestamp() };
+    await assertFails(setDoc(interim(dbFor(VIEWER)), ok));
+    await assertFails(setDoc(interim(dbFor(OWNER), "4"), ok));
+    await assertFails(setDoc(interim(dbFor(OWNER)), { ...ok, seq: "1" }));
+    await assertFails(setDoc(interim(dbFor(OWNER)), { ...ok, extra: true }));
     await seedSession({ status: "ended" });
-    await assertFails(setDoc(interim(dbFor(OWNER)), { text: "late", updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(interim(dbFor(OWNER)), ok));
   });
 
   it("stops viewer access once the owner removes them", async () => {
-    await seedSession({ viewerEmails: ["someone-else@example.com"] });
+    await seedSession({ viewerKeys: [keyOf("someone-else@example.com")] });
     await assertFails(getDocs(collection(dbFor(VIEWER), "sessions", SESSION_ID, "lines")));
   });
 });

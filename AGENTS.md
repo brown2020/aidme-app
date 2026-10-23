@@ -69,8 +69,11 @@ All logic runs in the browser after static/SSR shell delivery:
 3. Final results append to in-memory `transcript[]` (capped at `MAX_TRANSCRIPT_LENGTH`); interim text shown separately.
 4. On `onend`, recognition auto-restarts after `RECOGNITION_RESTART_DELAY_MS` if still mounted and `shouldListen` is true.
 5. `Header` auto-stops after `LISTENING_TIMEOUT_MS` (30 minutes).
-6. **Live sharing:** when `useLiveSessionStore.activeSessionId` is set and the user is signed in, `useLiveTranscriptSync` receives `useListening`'s `onInterim` (throttled via `createThrottledLatest` into `sessions/{id}/interim/current`) and `onFinalSentence` (one batch: append to `lines` + clear interim). Viewers subscribe to session, lines, and interim with `onSnapshot` (`useSharedSession`).
-7. **Auth:** `AuthListener` (root layout) mirrors `onIdTokenChanged` into `useAuthStore` and clears the active session when the user changes. Firebase initializes lazily (`lib/firebase/client.ts`) so builds work without env vars.
+6. **Live sharing:** when `useLiveSessionStore.activeSessionId` is set and the user is signed in, `useLiveTranscriptSync` receives `useListening`'s `onInterim` (throttled via `createThrottledLatest`, rotated across `sessions/{id}/interim/{0-3}` with an increasing `seq`) and `onFinalSentence` (one batch: append to `lines` + clear interim). Viewers subscribe to session, lines, and interim with `onSnapshot` (`useSharedSession`).
+7. **Auth:** `AuthListener` (root layout) mirrors `onIdTokenChanged` into `useAuthStore` and clears the active session when the user changes.
+8. **Bundle boundary (keep it):** caption pages must not statically import the Firebase SDK. SDK-free helpers live in `lib/firebase/config.ts`; everything else (`client.ts`, `db.ts`, `session.ts`, `liveSessions.ts`, `auth.ts`) is reached via dynamic `import()` from home-page code or from account-route components. `AuthListener` loads Firebase only on `routeNeedsFirebase()` routes or when `aidme-app_signed_in` is set. The e2e test "captions work signed out without downloading Firestore" guards this.
+9. **Invite privacy:** sessions store `viewerKeys` (SHA-256 of lowercased email, `emailKey()`); plain emails live owner-only in `private/invites`. Rules compute the same hash (`viewerKey()`).
+10. **App Check:** `client.ts` starts reCAPTCHA Enterprise App Check when `NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY` is set (skipped for emulators). Firestore enforcement is on in production.
 
 ### State management
 
@@ -137,6 +140,7 @@ npm run lint         # ESLint (eslint .)
 npm run test         # Vitest unit tests (single run)
 npm run test:ci      # Vitest with CI=true
 npm run test:rules   # Firestore rules tests in the emulator (Java 21)
+npm run test:e2e     # Playwright e2e against Auth + Firestore emulators (Java 21, `npx playwright install chromium`)
 npm run doctor       # React Doctor full scan (keep at 100)
 npm run deploy:rules # Deploy firestore.rules + indexes to aidmehearing (production)
 ```
@@ -148,7 +152,7 @@ Copy `.env.example` to `.env.local`. All values are public Firebase web config (
 ### Canonical validation (run before committing)
 
 ```bash
-npm run lint && npm run typecheck && npm run test:ci && npm run test:rules && npm run build
+npm run lint && npm run typecheck && npm run test:ci && npm run test:rules && npm run build && npm run test:e2e
 ```
 
 There is **no** standalone `typecheck` script. `npm run build` is the TypeScript gate.

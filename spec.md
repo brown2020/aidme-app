@@ -83,7 +83,7 @@ Single-page transcription experience at `/` with global header (mic, logo/about,
 | Hard sign-out | **Shipped** | Footer + account page; ends an active share, clears auth-related storage, reloads to `/` |
 | Google Analytics | **Shipped** | Firebase Analytics when `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` is set |
 | Firefox transcription | **Not supported** | No Web Speech API |
-| Automated tests | **Partial** | Vitest for lib validation, speech module, route model |
+| Automated tests | **Shipped** | Vitest unit + contract tests, Firestore rules emulator tests, Playwright e2e against Auth/Firestore emulators (CI) |
 
 ### Current user flows (diagram)
 
@@ -113,14 +113,16 @@ flowchart TD
 | Sonner | Error toasts |
 | Firebase Auth (`aidmehearing`) | Accounts; authorized domains include `aid.me`, `www.aid.me`, `localhost` |
 | Cloud Firestore (`aidmehearing`, `(default)`, Standard, `nam5`) | Live shared sessions; rules + indexes deployed via `npm run deploy:rules` |
-| Firebase Analytics | Usage analytics (optional env) |
+| Firebase Analytics | Usage analytics and operational events (`reportOperationalEvent`), loaded when the browser is idle |
+| reCAPTCHA Enterprise / App Check | Blocks scripted Firestore access; key covers aid.me, www.aid.me, localhost |
 | Next.js / Vercel **(inferred deploy)** | App hosting; no API routes or server actions in repo |
 | Aid Hearing iOS app | WebView + universal links |
 
 ### Architecture summary
 
-- **Client-rendered** Next.js 16 App Router app; Firebase client SDK talks directly to Auth and Firestore
-- **Authority:** `firestore.rules` is the only access boundary (owner by UID; viewers by verified, lowercased email in `viewerEmails`; lines append-only while `status == "live"`). Emulator tests in `rules/firestore.rules.test.ts`
+- **Client-rendered** Next.js 16 App Router app; Firebase client SDK talks directly to Auth and Firestore. The SDK is lazy-loaded: signed-out visitors on caption pages never download it (home ~236 KB gzip JS vs ~436 KB on account pages); it loads on `/sign-in`, `/account`, `/auth/*`, `/s/*`, or when this browser has signed in before (`aidme-app_signed_in` hint)
+- **App Check:** reCAPTCHA Enterprise provider (`NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`), enforced for Firestore in production
+- **Authority:** `firestore.rules` is the only access boundary (owner by UID; viewers by the SHA-256 fingerprint of their verified, lowercased email in `viewerKeys`; lines append-only while `status == "live"`). Emulator tests in `rules/firestore.rules.test.ts`
 - **Zustand** stores: `useAppStore` (listen + preferences), `useAuthStore` (mirrors Firebase user), `useLiveSessionStore` (active session ID in `sessionStorage`, so a reload keeps streaming in that tab only)
 - **Hook layer** separates permissions (`useMicrophonePermission`), controls (`useStartListening`), recognition (`useListening`, with an `onFinalSentence` callback), and sharing (`useLiveTranscriptSync`, `useActiveLiveSession`, `useSharedSession`)
 - **No** API routes, Server Actions, server session cookies, auth middleware, or background jobs. No server renders private data, so there is nothing for a session cookie to protect
@@ -129,11 +131,12 @@ flowchart TD
 
 | Path | Fields | Who |
 |------|--------|-----|
-| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerEmails` (≤10, lowercase), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read; a viewer may only remove their own email |
+| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerKeys` (≤10 SHA-256 hex fingerprints of invited emails), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read; a viewer may only remove their own fingerprint |
+| `sessions/{sessionId}/private/invites` | `emails` (≤10, lowercase), `updatedAt` | Owner only (written in the same batch as the session) |
 | `sessions/{sessionId}/lines/{lineId}` | `text` (1–2000 chars), `createdAt` (server time) | Owner appends while live and deletes; owner + viewers read; no edits |
-| `sessions/{sessionId}/interim/current` | `text` (≤2000 chars, words still being spoken), `updatedAt` | Owner overwrites while live (throttled; cleared in the same batch that appends a line); owner + viewers read |
+| `sessions/{sessionId}/interim/{0-3}` | `text` (≤2000 chars, words still being spoken), `seq` (increasing int), `updatedAt` | Owner writes while live, rotating slots so each document gets ≤1 write/s; viewers show the highest `seq`; a line append clears it in the same batch |
 
-Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerEmails CONTAINS, createdAt DESC` (`firestore.indexes.json`).
+Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerKeys CONTAINS, createdAt DESC` (`firestore.indexes.json`).
 
 ### Technical constraints
 
@@ -153,7 +156,7 @@ Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerEmails CONTAINS, cr
 - README dependency table can drift from `package.json` **(inferred documentation debt)**
 - Google sign-in is hidden inside the iOS WebView wrapper (Google blocks embedded web views); wrapper users sign in with email + password or an email link
 - Invites are sent from the owner's own email app / share sheet; Aid.me does not send invitation email itself
-- In-progress words reach viewers in about 0.15–0.5 s, occasionally ~1 s, because writes to the single `interim/current` document are throttled to one per 300 ms (`INTERIM_SYNC_INTERVAL_MS`)
+- In-progress words reach viewers within roughly 0.15–0.5 s; writes are throttled to one per 300 ms (`INTERIM_SYNC_INTERVAL_MS`) and rotated across four documents
 
 ### Partially implemented / abandoned systems
 

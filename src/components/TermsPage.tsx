@@ -1,5 +1,6 @@
 import { COMPANY_INFO } from "@/lib/constants";
 import { TermsAccessAndUse } from "./terms/TermsAccessAndUse";
+import { TermsAccountsAndLiveSharing } from "./terms/TermsAccountsAndLiveSharing";
 import { TermsCustomerResponsibilities } from "./terms/TermsCustomerResponsibilities";
 import { TermsPaymentAndFees } from "./terms/TermsPaymentAndFees";
 import { TermsSubscriptions } from "./terms/TermsSubscriptions";
@@ -23,7 +24,7 @@ const PRIVACY_LINK = "/privacy";
  * Renders static terms of service content using company information from constants
  */
 export default function Terms() {
-  const { name: companyName, email: companyEmail, updatedAt } = COMPANY_INFO;
+  const { name: companyName, email: companyEmail, termsUpdatedAt: updatedAt } = COMPANY_INFO;
   return (
     <div className="text-wrapper">
 <h3>Terms of Service</h3>
@@ -51,6 +52,7 @@ export default function Terms() {
         and conditions, you may not use the Services.
       </p>
       <TermsAccessAndUse companyName={companyName} />
+      <TermsAccountsAndLiveSharing companyName={companyName} />
       <TermsCustomerResponsibilities companyName={companyName} />
       <TermsPaymentAndFees companyName={companyName} />
       <TermsSubscriptions companyName={companyName} companyEmail={companyEmail} />

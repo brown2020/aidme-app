@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { UserRound } from "lucide-react";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { UserAvatar } from "./UserAvatar";
 

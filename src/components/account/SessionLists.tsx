@@ -15,6 +15,7 @@ import type { LiveSession } from "@/lib/liveSessionModel";
 import { formatSessionDate } from "@/lib/formatDate";
 import { LIVE_SESSION_MESSAGES } from "@/lib/constants";
 import { logger } from "@/lib/logger";
+import { reportOperationalEvent } from "@/lib/monitoring";
 import { Button } from "../ui/Button";
 import { FormMessage } from "../ui/FormMessage";
 
@@ -27,23 +28,34 @@ type Subscribe = (
   key: string,
   onChange: (sessions: LiveSession[]) => void,
   onError: (error: unknown) => void
-) => () => void;
+) => (() => void) | Promise<() => void>;
 
 function useSessionList(subscribe: Subscribe, key: string): ListState {
   const [state, setState] = useState<ListState>({ kind: "loading" });
-  useEffect(
-    () =>
-      subscribe(
-        key,
-        (sessions) => setState({ kind: "ready", sessions }),
-        (error) => {
-          logger.warn("Session list failed", error);
-          setState({ kind: "failed" });
-        }
-      ),
-    [subscribe, key]
-  );
+  useEffect(() => {
+    let unsubscribe: (() => void) | null = null;
+    let cancelled = false;
+    const fail = (error: unknown) => {
+      reportOperationalEvent("session_list_failed", error);
+      setState({ kind: "failed" });
+    };
+    Promise.resolve(subscribe(key, (sessions) => setState({ kind: "ready", sessions }), fail))
+      .then((stop) => {
+        if (cancelled) stop();
+        else unsubscribe = stop;
+      })
+      .catch(fail);
+    return () => {
+      cancelled = true;
+      unsubscribe?.();
+    };
+  }, [subscribe, key]);
   return state;
+}
+
+function sharedWithLabel(count: number): string {
+  if (count === 0) return "Shared with no one";
+  return `Shared with ${count} ${count === 1 ? "person" : "people"}`;
 }
 
 function StatusBadge({ status }: { status: LiveSession["status"] }) {
@@ -113,8 +125,7 @@ function OwnedSessionRow({ session }: { session: LiveSession }) {
           <StatusBadge status={session.status} />
         </div>
         <p className="text-sm text-gray-400">
-          {formatSessionDate(session.createdAt)} · Shared with{" "}
-          <span className="break-all">{session.viewerEmails.join(", ") || "no one"}</span>
+          {formatSessionDate(session.createdAt)} · {sharedWithLabel(session.viewerKeys.length)}
         </p>
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">

@@ -158,7 +158,7 @@ export const COMPANY_INFO = {
   email: "info@ignitechannel.com",
   address: "30765 Pacific Coast Hwy, Suite 354",
   location: "Malibu, CA",
-  updatedAt: "November 1, 2023",
+  termsUpdatedAt: "October 22, 2026",
   privacyUpdatedAt: "October 22, 2026",
 } as const;
 

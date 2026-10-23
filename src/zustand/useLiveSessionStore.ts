@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { sessionIdSchema } from "@/lib/liveSessionModel";
+import { LIVE_SESSION_STORAGE_KEY } from "@/lib/firebase/config";
 
 interface LiveSessionStore {
   /** Session currently receiving this device's transcript lines */
@@ -19,7 +20,7 @@ export const useLiveSessionStore = create<LiveSessionStore>()(
       setActiveSessionId: (activeSessionId) => set({ activeSessionId }),
     }),
     {
-      name: "aidme-app_live_session_v1",
+      name: LIVE_SESSION_STORAGE_KEY,
       version: 1,
       storage: createJSONStorage(() => sessionStorage),
       partialize: (state) => ({ activeSessionId: state.activeSessionId }),

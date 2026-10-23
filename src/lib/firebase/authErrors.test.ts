@@ -2,7 +2,7 @@ import { FirebaseError } from "firebase/app";
 import { describe, expect, it } from "vitest";
 import { AUTH_ERROR_MESSAGES } from "@/lib/constants";
 import { getAuthErrorMessage } from "./authErrors";
-import { FirebaseNotConfiguredError } from "./client";
+import { FirebaseNotConfiguredError } from "./config";
 
 describe("getAuthErrorMessage", () => {
   it("uses the same copy for wrong password and unknown user", () => {

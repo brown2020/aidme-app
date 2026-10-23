@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Loader2, Mail } from "lucide-react";
 import { signInWithGoogle } from "@/lib/firebase/auth";
 import { getAuthErrorMessage } from "@/lib/firebase/authErrors";
-import { isFirebaseConfigured } from "@/lib/firebase/client";
+import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { getSafeRedirect } from "@/lib/redirect";
 import { AUTH_ERROR_MESSAGES, MIN_PASSWORD_LENGTH } from "@/lib/constants";
 import { useAuthStore } from "@/zustand/useAuthStore";
