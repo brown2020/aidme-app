@@ -11,7 +11,8 @@ export function useOrigin(): string {
 
 /**
  * True inside the Aid Hearing iOS wrapper. Google blocks its sign-in page in
- * embedded web views, so callers hide Google sign-in there.
+ * embedded web views, and emailed sign-in links open in Safari rather than the
+ * app, so callers hide both and leave email + password.
  */
 export function useIsNativeWebView(): boolean {
   return useSyncExternalStore(subscribe, () => Boolean(window.ReactNativeWebView), () => false);

@@ -90,6 +90,21 @@ test("Google sign-in completes through the provider window", async ({ page }) =>
   await expect(page.getByRole("heading", { name: "Gina Google" })).toBeVisible();
 });
 
+test("inside the iOS app, sign-in offers only email and password", async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.assign(window, { ReactNativeWebView: { postMessage: () => undefined } });
+  });
+  const user = await createVerifiedUser("Ada App", "ada@example.com");
+  await page.goto("/sign-in?redirect=%2Faccount");
+  await expect(page.getByRole("button", { name: "Forgot your password?" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Continue with Google" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Email me a sign-in link instead" })).toHaveCount(0);
+  await page.getByLabel("Email").fill(user.email);
+  await page.getByLabel("Password", { exact: true }).fill(user.password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL("**/account");
+});
+
 test("a signed-in user who wasn't invited sees a clear no-access state", async ({ page }) => {
   const stranger = await createVerifiedUser("Sam Stranger", "sam@example.com");
   await page.goto("/sign-in?redirect=%2Fs%2Fabcdefghij0123456789");

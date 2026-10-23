@@ -267,6 +267,7 @@ function EmailSentNotice({
 }
 
 function AuthModeLinks({ mode, onSwitch }: { mode: AuthMode; onSwitch: (mode: AuthMode) => void }) {
+  const isNativeWebView = useIsNativeWebView();
   if (mode !== "signIn") {
     return (
       <p className="text-sm text-gray-300">
@@ -282,14 +283,16 @@ function AuthModeLinks({ mode, onSwitch }: { mode: AuthMode; onSwitch: (mode: Au
       <button type="button" className={linkButtonClassName} onClick={() => onSwitch("reset")}>
         Forgot your password?
       </button>
-      <button
-        type="button"
-        className={`flex items-center gap-2 ${linkButtonClassName}`}
-        onClick={() => onSwitch("emailLink")}
-      >
-        <Mail size={16} aria-hidden />
-        Email me a sign-in link instead
-      </button>
+      {!isNativeWebView && (
+        <button
+          type="button"
+          className={`flex items-center gap-2 ${linkButtonClassName}`}
+          onClick={() => onSwitch("emailLink")}
+        >
+          <Mail size={16} aria-hidden />
+          Email me a sign-in link instead
+        </button>
+      )}
       <p className="text-gray-300">
         New to Aid.me?{" "}
         <button type="button" className={linkButtonClassName} onClick={() => onSwitch("signUp")}>

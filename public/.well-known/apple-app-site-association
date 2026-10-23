@@ -9,5 +9,10 @@
         ]
       }
     ]
+  },
+  "webcredentials": {
+    "apps": [
+      "XF84UGYX27.me.aid.app"
+    ]
   }
 }

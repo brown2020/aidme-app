@@ -76,7 +76,7 @@ Single-page transcription experience at `/` with global header (mic, logo/about,
 | Settings page | **Shipped** | `/settings` route with language, caption size, and shortcut help |
 | Mic toggle keyboard shortcut | **Shipped** | Space via `useMicToggleShortcut` in `Header` |
 | Transcript persistence (local) | **Not shipped** | In-memory only on the owner's screen; refresh clears (shared sessions keep their lines in Firestore) |
-| User accounts | **Shipped** | Firebase Auth: Google (hidden in the iOS WebView), email/password with verification + reset, email link; `AuthListener` → `useAuthStore` |
+| User accounts | **Shipped** | Firebase Auth: Google and email link (both hidden in the iOS WebView), email/password with verification + reset; `AuthListener` → `useAuthStore` |
 | Live shared transcripts | **Shipped** | `sessions/{id}` + `lines/{id}` in Firestore; `LiveShareButton`/`LiveShareDialog`, `useLiveTranscriptSync`, viewer at `/s/[sessionId]`; access enforced by `firestore.rules` |
 | Account page | **Shipped** | `/account`: profile name, verify email, your sessions (view/stop/delete), shared with you, sign out |
 | Account deletion | **Shipped** | `/account` → Delete account: re-auth if last sign-in > 5 min, type DELETE; deletes owned sessions + lines, removes own email from shared sessions (viewer self-removal rule), then deletes the Firebase Auth user (`lib/firebase/account.ts`) |
@@ -154,7 +154,7 @@ Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerKeys CONTAINS, crea
 - Transcript list keys use array index **(inferred:** rare reorder issues if cap logic changes)
 - Terms page shows `COMPANY_INFO.updatedAt` of November 2023 and does not yet mention accounts or live sharing (privacy page was updated October 2026)
 - README dependency table can drift from `package.json` **(inferred documentation debt)**
-- Google sign-in is hidden inside the iOS WebView wrapper (Google blocks embedded web views); wrapper users sign in with email + password or an email link
+- Google and email-link sign-in are hidden inside the iOS WebView wrapper (Google blocks embedded web views, and emailed links open in Safari rather than the app); wrapper users sign in with email + password, which iOS Password AutoFill can fill through the `webcredentials` entry in `apple-app-site-association`
 - Invites are sent from the owner's own email app / share sheet; Aid.me does not send invitation email itself
 - In-progress words reach viewers within roughly 0.15–0.5 s; writes are throttled to one per 300 ms (`INTERIM_SYNC_INTERVAL_MS`) and rotated across four documents
 

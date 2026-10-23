@@ -132,7 +132,7 @@ Production runbook:
 
 App link files for the native shell:
 
-- `public/.well-known/apple-app-site-association`
+- `public/.well-known/apple-app-site-association` (universal links and Password AutoFill for `XF84UGYX27.me.aid.app`)
 - `public/.well-known/assetlinks.json`
 
 ## Privacy note
