@@ -4,7 +4,7 @@ Single source of truth for autonomous agents (Codex, Cursor, etc.) working in th
 
 ## Project overview
 
-**Aid.me** (`aidme-app`) is a client-only Next.js web app that provides real-time speech transcription for accessibility—live closed captioning for conversations using the browser **Web Speech API**. There is no backend, database, authentication, or API layer.
+**Aid.me** (`aidme-app`) is a client-rendered Next.js web app that provides real-time speech transcription for accessibility—live closed captioning for conversations using the browser **Web Speech API**. Captions work without an account. Optional **Firebase Auth** accounts let a user stream finalized sentences to **Cloud Firestore** so invited people can read them live at `/s/{sessionId}`. There is no custom backend or API layer: the browser talks to Firebase directly and `firestore.rules` is the access boundary.
 
 A companion **iOS native app** ([Aid Hearing on the App Store](https://apps.apple.com/us/app/aid-me-hearing/id6473455500)) wraps this web experience; the web app exposes a minimal `ReactNativeWebView` bridge for refresh.
 
@@ -21,6 +21,8 @@ Help people who are deaf or hard of hearing (and anyone who needs captions) foll
 | Language | TypeScript (strict) |
 | State | Zustand (persist + devtools) |
 | Validation | Zod |
+| Accounts / data | Firebase JS SDK 13 (Auth, Firestore, Analytics); project `aidmehearing` |
+| Rules tests | `@firebase/rules-unit-testing` + Firestore emulator (needs Java 21) |
 | Toasts | Sonner |
 | Icons | lucide-react |
 | Lint | ESLint 10 flat config (`eslint.config.mjs`) |
@@ -36,13 +38,19 @@ aidme-app/
 │   ├── app/                # Routes (App Router)
 │   │   ├── layout.tsx      # Root: Header, ErrorBoundary, Toaster
 │   │   ├── page.tsx        # Home → Listen
-│   │   └── (content)/      # about, settings, privacy, terms (+ Footer layout)
+│   │   ├── s/[sessionId]/  # Live viewer for invited users
+│   │   └── (content)/      # about, settings, privacy, terms, sign-in, account, auth/email-link (+ Footer layout)
 │   ├── assets/             # aidme.png (logo)
-│   ├── components/         # UI + listen/* subcomponents, settings page
-│   ├── hooks/              # Speech, permissions, viewport, media query
-│   ├── lib/                # constants, speechRecognition, validation, logger
+│   ├── components/         # UI, listen/*, auth/*, live/*, account/*
+│   ├── hooks/              # Speech, permissions, viewport, live sharing, sign-out
+│   ├── lib/                # constants, speechRecognition, validation, logger, liveSessionModel, firebase/*
 │   ├── types/              # speech.d.ts, assets.d.ts
-│   └── zustand/            # useAppStore.ts
+│   └── zustand/            # useAppStore, useAuthStore, useLiveSessionStore
+├── rules/                  # Firestore rules emulator tests
+├── firestore.rules         # Access boundary for all stored data
+├── firestore.indexes.json  # Composite indexes for account-page queries
+├── firebase.json           # Firestore deploy + emulator config (.firebaserc → aidmehearing)
+├── .env.example            # Firebase public config names (values in .env.local)
 ├── AGENTS.md               # This file
 ├── spec.md                 # Product spec + roadmap (authoritative)
 ├── CLAUDE.md               # Pointer to AGENTS.md
@@ -61,12 +69,16 @@ All logic runs in the browser after static/SSR shell delivery:
 3. Final results append to in-memory `transcript[]` (capped at `MAX_TRANSCRIPT_LENGTH`); interim text shown separately.
 4. On `onend`, recognition auto-restarts after `RECOGNITION_RESTART_DELAY_MS` if still mounted and `shouldListen` is true.
 5. `Header` auto-stops after `LISTENING_TIMEOUT_MS` (30 minutes).
+6. **Live sharing:** when `useLiveSessionStore.activeSessionId` is set and the user is signed in, `useListening`'s `onFinalSentence` callback (`useLiveTranscriptSync`) appends each sentence to `sessions/{id}/lines`. Viewers subscribe with `onSnapshot` (`useSharedSession`).
+7. **Auth:** `AuthListener` (root layout) mirrors `onIdTokenChanged` into `useAuthStore` and clears the active session when the user changes. Firebase initializes lazily (`lib/firebase/client.ts`) so builds work without env vars.
 
 ### State management
 
 - **Store:** `src/zustand/useAppStore.ts`
 - **Fields:** `shouldListen`, `micPermissionStatus`, and `micPermissionError` (ephemeral, not persisted); `isTranscriptFlipped`, `recognitionLanguage`, and `captionSize` (persisted to `localStorage` key `aidme-app_preferences_v1`)
 - **Hydration:** Zod `appStateSchema` validation on rehydrate; invalid state resets to defaults
+- **Auth store:** `src/zustand/useAuthStore.ts` — `status` (`unknown`/`signedOut`/`signedIn`) and a plain `user` snapshot; not persisted (Firebase persists the session itself)
+- **Live session store:** `src/zustand/useLiveSessionStore.ts` — `activeSessionId` in `sessionStorage` key `aidme-app_live_session_v1`, validated on rehydrate
 
 ### Component pattern
 
@@ -74,17 +86,21 @@ All logic runs in the browser after static/SSR shell delivery:
 - **Server components:** Legal/content pages (`AboutPage`, `PrivacyPage`, `TermsPage`)—no `"use client"` on those files
 - **Client boundaries:** `Listen`, `Header`, `Instructions`, hooks, `ErrorBoundary`, interactive UI
 
-### Routes (no middleware, no auth)
+### Routes (no middleware; data access enforced by Firestore rules)
 
 | Path | Component | Notes |
 |------|-----------|-------|
-| `/` | `Listen` | Main transcription |
+| `/` | `Listen` | Main transcription; "Share live" when signed in |
 | `/about` | `AboutPage` | Help copy |
 | `/settings` | `SettingsPage` | Language, caption size, and keyboard shortcut help |
+| `/sign-in` | `SignInPage` | Sign in, create account, reset password, email link; `?redirect=` (validated by `getSafeRedirect`), `?mode=signup` |
+| `/auth/email-link` | `EmailLinkCompletePage` | Completes passwordless sign-in |
+| `/account` | `AccountPage` | Profile, verify email, owned + shared sessions, sign out |
+| `/s/[sessionId]` | `LiveViewer` | Invited viewer; header mic + Space shortcut disabled here |
 | `/privacy` | `PrivacyPage` | Static policy |
 | `/terms` | `TermsPage` | Static terms |
 
-**Not present:** `app/api/*`, Server Actions, `middleware.ts`, `proxy.ts`, auth, Firebase, databases, cron, queues, background workers. All routes are public by design.
+**Not present:** `app/api/*`, Server Actions, `middleware.ts`, `proxy.ts`, server session cookies, Firebase Admin SDK, cron, queues, background workers. Every page renders publicly; private data is only reachable through Firestore, which enforces `firestore.rules`.
 
 ## Key features (shipped today)
 
@@ -105,6 +121,8 @@ All logic runs in the browser after static/SSR shell delivery:
 - PWA manifest + universal/app links for native wrapper
 - React Native WebView `postMessage("refresh")` on logo tap
 - Error boundary with dev-only stack display
+- Firebase accounts: Google, email + password (verification, reset, eye toggle), email link; hard sign-out in footer and account page
+- Live shared transcripts to up to 10 invited, verified emails; invite via email app, share sheet, or copied link; stop, edit invitees, delete
 
 ## Important commands
 
@@ -116,12 +134,19 @@ npm run start        # Serve production build
 npm run lint         # ESLint (eslint .)
 npm run test         # Vitest unit tests (single run)
 npm run test:ci      # Vitest with CI=true
+npm run test:rules   # Firestore rules tests in the emulator (Java 21)
+npm run doctor       # React Doctor full scan (keep at 100)
+npm run deploy:rules # Deploy firestore.rules + indexes to aidmehearing (production)
 ```
+
+### Environment
+
+Copy `.env.example` to `.env.local`. All values are public Firebase web config (`NEXT_PUBLIC_FIREBASE_*`), not secrets. Without them the app builds and captions work; account features show a "not available" notice. Set the same names in the hosting provider. Never inline them in `.github/workflows/*`.
 
 ### Canonical validation (run before committing)
 
 ```bash
-npm run lint && npm run test:ci && npm run build
+npm run lint && npm run typecheck && npm run test:ci && npm run test:rules && npm run build
 ```
 
 There is **no** standalone `typecheck` script. `npm run build` is the TypeScript gate.
@@ -157,7 +182,7 @@ Do not import client-only modules into server components. Root `layout.tsx` is a
 
 ## Route protection
 
-**None.** All routes are public. Do not add auth middleware without an explicit product decision in `spec.md`.
+Pages are public; client components show sign-in or no-access states based on `useAuthStore`. Authorization lives in `firestore.rules` (owner UID; viewers by verified lowercased email). Never rely on client state, middleware, or `proxy.ts` for access. If server-rendered private data is ever added, it must verify Firebase identity server-side.
 
 ## Files and systems requiring extra caution
 
@@ -166,6 +191,8 @@ Do not import client-only modules into server components. Root `layout.tsx` is a
 | `src/hooks/useListening.ts` | Race conditions on unmount/restart; test stop/start carefully |
 | `src/lib/speechRecognition.ts` | Singleton state; breaking this causes duplicate or dead recognition |
 | `src/zustand/useAppStore.ts` | Persistence schema changes affect existing users’ `localStorage` |
+| `firestore.rules` | The only access boundary for stored transcripts. Change with a matching test in `rules/`, run `npm run test:rules`, then `npm run deploy:rules` |
+| `src/lib/firebase/liveSessions.ts` | Field names/shape must match `firestore.rules` exactly or writes are denied |
 | `src/lib/constants.ts` | User-visible errors and legal `COMPANY_INFO` |
 | `public/.well-known/*` | Native app deep linking—coordinate with mobile releases |
 | `package-lock.json` / `.npmrc` | Security overrides; use `npm`, not yarn/pnpm |

@@ -2,8 +2,9 @@
 
 import { useEffect, useRef } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { MicIcon, Settings } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useStartListening } from "@/hooks/useStartListening";
 import { useMicToggleShortcut } from "@/hooks/useMicToggleShortcut";
 import { useViewportHeight } from "@/hooks/useViewportHeight";
@@ -12,6 +13,7 @@ import {
   MIC_TOGGLE_SHORTCUT_LABEL,
 } from "@/lib/constants";
 import { Button } from "./ui/Button";
+import { AccountButton } from "./auth/AccountButton";
 import logo from "../assets/aidme.png";
 
 /**
@@ -26,10 +28,13 @@ export default function Header() {
     permissionStatus,
   } = useStartListening({ navigateToHome: true });
   const router = useRouter();
+  const pathname = usePathname();
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Viewers following someone else's captions shouldn't start their own mic by accident.
+  const isViewerPage = pathname.startsWith("/s/");
 
   useViewportHeight();
-  useMicToggleShortcut(toggleListening, { disabled: isStarting });
+  useMicToggleShortcut(toggleListening, { disabled: isStarting, enabled: !isViewerPage });
 
   useEffect(() => {
     if (!isListening) {
@@ -63,22 +68,33 @@ export default function Header() {
 
   return (
     <header className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
-      <Button
-        variant={getMicButtonVariant()}
-        size="md"
-        onClick={toggleListening}
-        disabled={isStarting}
-        aria-label={
-          isListening
-            ? `Stop listening (${MIC_TOGGLE_SHORTCUT_LABEL} shortcut)`
-            : `Start listening (${MIC_TOGGLE_SHORTCUT_LABEL} shortcut)`
-        }
-        aria-keyshortcuts={MIC_TOGGLE_SHORTCUT_LABEL}
-        title={`Toggle listening (${MIC_TOGGLE_SHORTCUT_LABEL})`}
-        aria-busy={isStarting}
-      >
-        <MicIcon size={24} />
-      </Button>
+      <div className="flex w-28 items-center">
+        {isViewerPage ? (
+          <Link
+            href="/"
+            className="rounded-md px-2 py-2 text-sm font-medium text-white hover:bg-slate-600"
+          >
+            My captions
+          </Link>
+        ) : (
+          <Button
+            variant={getMicButtonVariant()}
+            size="md"
+            onClick={toggleListening}
+            disabled={isStarting}
+            aria-label={
+              isListening
+                ? `Stop listening (${MIC_TOGGLE_SHORTCUT_LABEL} shortcut)`
+                : `Start listening (${MIC_TOGGLE_SHORTCUT_LABEL} shortcut)`
+            }
+            aria-keyshortcuts={MIC_TOGGLE_SHORTCUT_LABEL}
+            title={`Toggle listening (${MIC_TOGGLE_SHORTCUT_LABEL})`}
+            aria-busy={isStarting}
+          >
+            <MicIcon size={24} />
+          </Button>
+        )}
+      </div>
 
       <button
         type="button"
@@ -96,14 +112,17 @@ export default function Header() {
         />
       </button>
 
-      <Button
-        variant="ghost"
-        size="md"
-        onClick={() => router.push("/settings")}
-        aria-label="Settings"
-      >
-        <Settings size={28} />
-      </Button>
+      <div className="flex w-28 items-center justify-end gap-1">
+        <AccountButton />
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.push("/settings")}
+          aria-label="Settings"
+        >
+          <Settings size={28} />
+        </Button>
+      </div>
     </header>
   );
 }

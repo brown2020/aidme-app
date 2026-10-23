@@ -24,11 +24,13 @@ interface UseListeningResult {
  *
  * @param shouldListen - Whether speech recognition should be active
  * @param language - BCP 47 language tag (default: "en-US")
+ * @param onFinalSentence - Called once per finalized sentence (e.g. live sharing)
  * @returns Transcript state, listening status, and permission error handling
  */
 export default function useListening(
   shouldListen: boolean,
-  language = "en-US"
+  language = "en-US",
+  onFinalSentence?: (text: string) => void
 ): UseListeningResult {
   const [transcript, setTranscript] = useState<string[]>([]);
   const [interimTranscript, setInterimTranscript] = useState("");
@@ -40,6 +42,8 @@ export default function useListening(
   const shouldListenRef = useRef(shouldListen);
   const permissionErrorRef = useRef(permissionError);
   const recognitionEffectIdRef = useRef(0);
+  // Kept in a ref so a new callback never restarts recognition.
+  const onFinalSentenceRef = useRef(onFinalSentence);
 
   // React-recommended: adjust related state during render when the listen flag
   // changes (not in an Effect) — clears blocking error/interim on stop or restart.
@@ -58,6 +62,10 @@ export default function useListening(
     permissionErrorRef.current = permissionError;
   }, [permissionError]);
 
+  useEffect(() => {
+    onFinalSentenceRef.current = onFinalSentence;
+  }, [onFinalSentence]);
+
   const handleResult = useCallback((event: SpeechRecognitionEvent) => {
     let newInterimTranscript = "";
 
@@ -72,6 +80,7 @@ export default function useListening(
         setTranscript((prev) =>
           [...prev, finalText].slice(-MAX_TRANSCRIPT_LENGTH)
         );
+        onFinalSentenceRef.current?.(finalText);
         newInterimTranscript = "";
       } else {
         newInterimTranscript += text + " ";

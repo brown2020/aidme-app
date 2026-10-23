@@ -9,10 +9,13 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:ci": "CI=true vitest run",
+    "test:rules": "npx -y firebase-tools@15.34.1 emulators:exec --only firestore --project demo-aidme \"vitest run --config vitest.rules.config.mts\"",
+    "deploy:rules": "npx -y firebase-tools@15.34.1 deploy --only firestore:rules,firestore:indexes --project aidmehearing",
     "typecheck": "tsc --noEmit",
     "doctor": "npx -y react-doctor@0.9.14 . --scope full --yes --no-cache"
   },
   "dependencies": {
+    "firebase": "^13.1.0",
     "lucide-react": "^1.61.0",
     "next": "^16.4.2",
     "react": "^19.3.1",
@@ -24,6 +27,7 @@
   },
   "devDependencies": {
     "@eslint/compat": "^2.1.1",
+    "@firebase/rules-unit-testing": "^6.0.0",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^25.9.9",
     "@types/react": "^19.3.0",
@@ -40,6 +44,7 @@
     "node": "22.x"
   },
   "overrides": {
+    "@grpc/grpc-js": "^1.13.7",
     "eslint-plugin-react-hooks": "^6.0.0",
     "postcss": "$postcss"
   }

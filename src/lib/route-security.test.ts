@@ -6,14 +6,19 @@ const repoRoot = join(__dirname, "../..");
 const publicAppRoutes = [
   { route: "/", file: "src/app/page.tsx" },
   { route: "/about", file: "src/app/(content)/about/page.tsx" },
+  { route: "/account", file: "src/app/(content)/account/page.tsx" },
+  { route: "/auth/email-link", file: "src/app/(content)/auth/email-link/page.tsx" },
   { route: "/privacy", file: "src/app/(content)/privacy/page.tsx" },
+  { route: "/s/[sessionId]", file: "src/app/s/[sessionId]/page.tsx" },
   { route: "/settings", file: "src/app/(content)/settings/page.tsx" },
+  { route: "/sign-in", file: "src/app/(content)/sign-in/page.tsx" },
   { route: "/terms", file: "src/app/(content)/terms/page.tsx" },
 ] as const;
 
 /**
- * Aid.me is a fully public client-side app with no auth layer.
- * These tests document and guard that architectural invariant.
+ * Every route renders publicly; account data is protected only by Firestore
+ * security rules (see rules/firestore.rules.test.ts), never by middleware.
+ * These tests guard that no server route can bypass those rules.
  */
 describe("route protection model", () => {
   it("does not ship Next.js middleware", () => {
@@ -34,8 +39,12 @@ describe("route protection model", () => {
     expect(publicAppRoutes.map(({ route }) => route)).toEqual([
       "/",
       "/about",
+      "/account",
+      "/auth/email-link",
       "/privacy",
+      "/s/[sessionId]",
       "/settings",
+      "/sign-in",
       "/terms",
     ]);
 

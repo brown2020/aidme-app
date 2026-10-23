@@ -3,6 +3,7 @@ import { RotateCw } from "lucide-react";
 import { Button } from "../ui/Button";
 import ListeningStatus from "../ListeningStatus";
 import { CopyTranscriptButton } from "./CopyTranscriptButton";
+import { LiveShareButton } from "../live/LiveShareButton";
 
 interface TranscriptHeaderProps {
   transcript: string[];
@@ -13,7 +14,7 @@ interface TranscriptHeaderProps {
 }
 
 /**
- * Minimal transcript toolbar: copy, face-to-face mode, and status
+ * Minimal transcript toolbar: live share, copy, face-to-face mode, and status
  */
 export const TranscriptHeader = memo(function TranscriptHeader({
   transcript,
@@ -26,6 +27,7 @@ export const TranscriptHeader = memo(function TranscriptHeader({
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <h2 className="text-2xl">Transcription</h2>
       <div className="flex flex-wrap items-center gap-3">
+        <LiveShareButton />
         <CopyTranscriptButton
           transcript={transcript}
           interimTranscript={interimTranscript}

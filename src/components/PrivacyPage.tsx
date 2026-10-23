@@ -10,7 +10,7 @@ export default function Privacy() {
     email: companyEmail,
     address: companyAddress,
     location: companyLocation,
-    updatedAt,
+    privacyUpdatedAt,
   } = COMPANY_INFO;
   return (
     <div className="text-wrapper">
@@ -24,6 +24,31 @@ export default function Privacy() {
         {companyName}. By using the {companyName}
         website and applications, you consent to the data practices described in
         this statement.
+      </p>
+      <h4>Captions, Accounts, and Live Sharing</h4>
+      <p>
+        You can use Aid.me captions without an account. When you are not
+        sharing, speech is converted to text by your browser&apos;s speech
+        recognition service and the transcript stays on your device; Aid.me
+        does not store it.
+      </p>
+      <p>
+        If you create an account, we store your email address, the name you
+        choose, and your profile photo if you sign in with Google. Accounts are
+        provided by Google Firebase Authentication.
+      </p>
+      <p>
+        When you turn on live sharing, each recognized sentence, the email
+        addresses you invite, and the session title and time are saved to your
+        account in Google Cloud Firestore so the people you invite can read
+        them. Only you and invited people who sign in with a verified invited
+        email address can read a shared session. Saved sessions remain until you
+        delete them from your account page. Because live sharing can capture
+        other people&apos;s speech, only share conversations where everyone
+        present is comfortable being transcribed.
+      </p>
+      <p>
+        We use Google Analytics to understand general usage of the site.
       </p>
       <h4>Collection of your Personal Information</h4>
       <p>
@@ -193,7 +218,7 @@ export default function Privacy() {
         <br />
         {companyEmail}
       </p>
-      <h5>Last updated: {updatedAt}</h5>
+      <h5>Last updated: {privacyUpdatedAt}</h5>
     </div>
   );
 }

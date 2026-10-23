@@ -6,6 +6,7 @@ import useListening from "@/hooks/useListening";
 import { useStartListening } from "@/hooks/useStartListening";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useSpeechRecognitionSupported } from "@/hooks/useSpeechRecognitionSupported";
+import { useLiveTranscriptSync } from "@/hooks/useLiveTranscriptSync";
 import Instructions from "./Instructions";
 import { BrowserNotSupportedState } from "./listen/BrowserNotSupportedState";
 import { PermissionErrorState } from "./listen/PermissionErrorState";
@@ -26,13 +27,14 @@ function ListenSession() {
     setIsTranscriptFlipped,
   } = useAppStore();
   const { startListening } = useStartListening();
+  const streamLine = useLiveTranscriptSync();
   const {
     transcript,
     interimTranscript,
     isListening,
     permissionError,
     setPermissionError,
-  } = useListening(shouldListen, recognitionLanguage);
+  } = useListening(shouldListen, recognitionLanguage, streamLine);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isSpeechSupported = useSpeechRecognitionSupported();

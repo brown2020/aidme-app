@@ -3,6 +3,7 @@ import { Toaster } from "sonner";
 import "./globals.css";
 import Header from "@/components/Header";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { AuthListener } from "@/components/auth/AuthListener";
 
 export const metadata: Metadata = {
   title: "Aid.me",
@@ -45,6 +46,7 @@ export default function RootLayout({
       </head>
       <body>
         <ErrorBoundary>
+          <AuthListener />
           <div className="flex flex-col w-full h-full bg-black">
             <Header />
             <main className="flex-1 overflow-hidden">{children}</main>

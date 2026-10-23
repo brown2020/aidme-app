@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { NAV_LINKS } from "@/lib/constants";
+import { FooterAuthLinks } from "./auth/FooterAuthLinks";
 
 /**
  * Footer navigation component
@@ -7,7 +8,7 @@ import { NAV_LINKS } from "@/lib/constants";
  */
 export default function Footer() {
   return (
-    <nav className="flex gap-2 items-center justify-center h-14 shrink-0">
+    <nav className="flex flex-wrap gap-x-3 gap-y-2 items-center justify-center min-h-14 shrink-0 py-2">
       {NAV_LINKS.map((item) => (
         <Link
           key={item.href}
@@ -17,6 +18,7 @@ export default function Footer() {
           {item.title}
         </Link>
       ))}
+      <FooterAuthLinks />
     </nav>
   );
 }

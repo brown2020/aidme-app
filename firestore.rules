@@ -1,0 +1,88 @@
+rules_version = '2';
+
+// Live shared transcripts.
+// sessions/{sessionId}: owned by one user, readable by invited verified emails.
+// sessions/{sessionId}/lines/{lineId}: append-only sentences written by the owner.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasVerifiedEmail() {
+      return signedIn()
+        && request.auth.token.email is string
+        && request.auth.token.email_verified == true;
+    }
+
+    function myEmail() {
+      return request.auth.token.email.lower();
+    }
+
+    function isOwner(data) {
+      return signedIn() && data.ownerUid == request.auth.uid;
+    }
+
+    // Unverified accounts could claim any address, so viewers must be verified.
+    function isViewer(data) {
+      return hasVerifiedEmail() && myEmail() in data.viewerEmails;
+    }
+
+    function sessionKeys() {
+      return ['ownerUid', 'ownerName', 'ownerEmail', 'title', 'status',
+              'language', 'viewerEmails', 'createdAt', 'updatedAt'];
+    }
+
+    function validSession(d) {
+      return d.keys().hasOnly(sessionKeys())
+        && d.keys().hasAll(sessionKeys())
+        && d.ownerName is string && d.ownerName.size() > 0 && d.ownerName.size() <= 100
+        && d.title is string && d.title.size() <= 120
+        && d.status in ['live', 'ended']
+        && d.language is string && d.language.size() <= 20
+        && d.viewerEmails is list && d.viewerEmails.size() <= 10
+        && d.updatedAt == request.time;
+    }
+
+    match /sessions/{sessionId} {
+      allow get, list: if isOwner(resource.data) || isViewer(resource.data);
+
+      allow create: if hasVerifiedEmail()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerEmail == myEmail()
+        && request.resource.data.status == 'live'
+        && request.resource.data.createdAt == request.time
+        && validSession(request.resource.data);
+
+      allow update: if isOwner(resource.data)
+        && request.resource.data.ownerUid == resource.data.ownerUid
+        && request.resource.data.ownerEmail == resource.data.ownerEmail
+        && request.resource.data.ownerName == resource.data.ownerName
+        && request.resource.data.createdAt == resource.data.createdAt
+        && validSession(request.resource.data);
+
+      allow delete: if isOwner(resource.data);
+
+      match /lines/{lineId} {
+        function session() {
+          return get(/databases/$(database)/documents/sessions/$(sessionId)).data;
+        }
+
+        allow read: if isOwner(session()) || isViewer(session());
+
+        allow create: if isOwner(session())
+          && session().status == 'live'
+          && request.resource.data.keys().hasOnly(['text', 'createdAt'])
+          && request.resource.data.keys().hasAll(['text', 'createdAt'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 2000
+          && request.resource.data.createdAt == request.time;
+
+        allow update: if false;
+        allow delete: if isOwner(session());
+      }
+    }
+  }
+}

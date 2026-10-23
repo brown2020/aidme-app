@@ -5,6 +5,7 @@ import { useStartListening } from "@/hooks/useStartListening";
 import Alert from "./Alert";
 import { Button } from "./ui/Button";
 import Link from "next/link";
+import { LiveShareButton } from "./live/LiveShareButton";
 
 /**
  * Instructions page component
@@ -62,6 +63,10 @@ export default function Instructions() {
       >
         <Mic size={60} />
       </Button>
+
+      <div className="flex justify-center">
+        <LiveShareButton />
+      </div>
 
       {permissionStatus === "denied" && (
         <p className="text-sm text-gray-400 mt-4">

@@ -9,7 +9,7 @@ Agent instructions: see [AGENTS.md](./AGENTS.md). Human setup: see [README.md](.
 
 ### Product promise
 
-**Closed captioning for your life** — place a phone or laptop where people are speaking, tap the microphone, and read large real-time captions without accounts, servers, or stored transcripts.
+**Closed captioning for your life** — place a phone or laptop where people are speaking, tap the microphone, and read large real-time captions. No account is needed for captions on your own device; an optional account lets you stream your captions live to people you invite, so they can follow along on their own phones.
 
 ### Target users
 
@@ -26,12 +26,15 @@ Agent instructions: see [AGENTS.md](./AGENTS.md). Human setup: see [README.md](.
 4. **Settings:** Open `/settings` to choose recognition language, caption size, and review keyboard shortcut help
 5. **Help / trust:** Open `/about`, `/privacy`, `/terms` from footer
 6. **Native wrapper:** Logo tap sends `ReactNativeWebView.postMessage("refresh")` when embedded
+7. **Account:** `/sign-in` → Google, email + password (with forgot password and email verification), or a passwordless email link → `/account` for profile, sessions, and sign-out
+8. **Live sharing (owner):** Signed in with a verified email → “Share live” → enter invitee emails → Email invite / Share sheet / Copy link → each finalized sentence streams to Firestore → “Stop sharing”
+9. **Live viewing (invitee):** Open `/s/{sessionId}` → sign in with the invited, verified email → captions appear in real time; access ends immediately if the owner removes them or deletes the session
 
 ### Product goals
 
 - Maximize **comprehension** (readable type, scroll to latest, stable listening loop)
-- Minimize **friction** (no sign-up, one-button listen, clear permission errors)
-- Preserve **privacy** (no server storage of speech or transcript)
+- Minimize **friction** (no sign-up needed for captions, one-button listen, clear permission errors)
+- Preserve **privacy** (transcripts are stored only while the user explicitly shares a session, readable only by invited verified emails, deletable from `/account`)
 - Support **accessibility** (ARIA live regions, semantic button states, high contrast)
 - Stay **compatible** with Chrome, Edge, Safari and the existing iOS shell
 
@@ -71,8 +74,12 @@ Single-page transcription experience at `/` with global header (mic, logo/about,
 | Adjustable caption text size | **Shipped** | `CaptionSizeSelect` + persisted `captionSize` |
 | Settings page | **Shipped** | `/settings` route with language, caption size, and shortcut help |
 | Mic toggle keyboard shortcut | **Shipped** | Space via `useMicToggleShortcut` in `Header` |
-| Transcript persistence | **Not shipped** | In-memory only; refresh clears |
-| User accounts / sync | **Not shipped** | By design |
+| Transcript persistence (local) | **Not shipped** | In-memory only on the owner's screen; refresh clears (shared sessions keep their lines in Firestore) |
+| User accounts | **Shipped** | Firebase Auth: Google (hidden in the iOS WebView), email/password with verification + reset, email link; `AuthListener` → `useAuthStore` |
+| Live shared transcripts | **Shipped** | `sessions/{id}` + `lines/{id}` in Firestore; `LiveShareButton`/`LiveShareDialog`, `useLiveTranscriptSync`, viewer at `/s/[sessionId]`; access enforced by `firestore.rules` |
+| Account page | **Shipped** | `/account`: profile name, verify email, your sessions (view/stop/delete), shared with you, sign out |
+| Hard sign-out | **Shipped** | Footer + account page; ends an active share, clears auth-related storage, reloads to `/` |
+| Google Analytics | **Shipped** | Firebase Analytics when `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` is set |
 | Firefox transcription | **Not supported** | No Web Speech API |
 | Automated tests | **Partial** | Vitest for lib validation, speech module, route model |
 
@@ -102,22 +109,34 @@ flowchart TD
 | Permissions API | Microphone status when available |
 | `getUserMedia` | Explicit mic permission before listen |
 | Sonner | Error toasts |
-| Next.js / Vercel **(inferred deploy)** | Static app hosting; no custom server code in repo |
+| Firebase Auth (`aidmehearing`) | Accounts; authorized domains include `aid.me`, `www.aid.me`, `localhost` |
+| Cloud Firestore (`aidmehearing`, `(default)`, Standard, `nam5`) | Live shared sessions; rules + indexes deployed via `npm run deploy:rules` |
+| Firebase Analytics | Usage analytics (optional env) |
+| Next.js / Vercel **(inferred deploy)** | App hosting; no API routes or server actions in repo |
 | Aid Hearing iOS app | WebView + universal links |
 
 ### Architecture summary
 
-- **Frontend-only** Next.js 16 App Router SPA-like home page
-- **Zustand** for listen toggle + flip preference (partial persist)
-- **Hook layer** separates permissions (`useMicrophonePermission`), controls (`useStartListening`), and recognition (`useListening`)
-- **No** API routes, Server Actions, database, auth middleware, or background jobs
+- **Client-rendered** Next.js 16 App Router app; Firebase client SDK talks directly to Auth and Firestore
+- **Authority:** `firestore.rules` is the only access boundary (owner by UID; viewers by verified, lowercased email in `viewerEmails`; lines append-only while `status == "live"`). Emulator tests in `rules/firestore.rules.test.ts`
+- **Zustand** stores: `useAppStore` (listen + preferences), `useAuthStore` (mirrors Firebase user), `useLiveSessionStore` (active session ID in `sessionStorage`, so a reload keeps streaming in that tab only)
+- **Hook layer** separates permissions (`useMicrophonePermission`), controls (`useStartListening`), recognition (`useListening`, with an `onFinalSentence` callback), and sharing (`useLiveTranscriptSync`, `useActiveLiveSession`, `useSharedSession`)
+- **No** API routes, Server Actions, server session cookies, auth middleware, or background jobs. No server renders private data, so there is nothing for a session cookie to protect
+
+### Firestore data model
+
+| Path | Fields | Who |
+|------|--------|-----|
+| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerEmails` (≤10, lowercase), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read |
+| `sessions/{sessionId}/lines/{lineId}` | `text` (1–2000 chars), `createdAt` (server time) | Owner appends while live and deletes; owner + viewers read; no edits |
+
+Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerEmails CONTAINS, createdAt DESC` (`firestore.indexes.json`).
 
 ### Technical constraints
 
 - Requires browser with `SpeechRecognition` / `webkitSpeechRecognition`
 - HTTPS (or localhost) typically required for microphone **(inferred from platform norms)**
 - Recognition quality and cloud vs on-device processing depend on **browser vendor**, not Aid.me
-- `viewport` meta disables user scaling (`maximumScale: 1`)—accessibility tradeoff for layout stability
 - Node 22.x enforced via `engines`
 
 ### Known limitations
@@ -127,12 +146,15 @@ flowchart TD
 - Brief pauses between utterances while recognition restarts
 - Browser may not support every listed language tag (user sees language error)
 - Transcript list keys use array index **(inferred:** rare reorder issues if cap logic changes)
-- Legal pages show `COMPANY_INFO.updatedAt` of November 2023—may be stale relative to product
+- Terms page shows `COMPANY_INFO.updatedAt` of November 2023 and does not yet mention accounts or live sharing (privacy page was updated October 2026)
 - README dependency table can drift from `package.json` **(inferred documentation debt)**
+- Google sign-in is hidden inside the iOS WebView wrapper (Google blocks embedded web views); wrapper users sign in with email + password or an email link
+- Invites are sent from the owner's own email app / share sheet; Aid.me does not send invitation email itself
+- Viewers see finalized sentences only (no interim text)
 
 ### Partially implemented / abandoned systems
 
-- **None identified** as half-built backends or auth.
+- **None identified.**
 
 ---
 
@@ -298,9 +320,26 @@ Ordered by user impact and dependency. Each item is sized for **one focused comm
 
 ---
 
+### R11 — Accounts and live shared transcripts ✅
+
+**Status:** Completed (dev, 2026-10-22)
+
+**User value:** Talk with your phone in front of you while the other person reads your captions live on their own phone.
+
+**Acceptance criteria:**
+
+- [x] Sign in / create account with Google, email + password (verification, reset), and email link; errors shown in the UI
+- [x] Signed-in, verified users start a live session, invite up to 10 emails, and share via email app, share sheet, or copied link
+- [x] Each finalized sentence streams to Firestore; invited viewers who sign in with a verified invited email see it in real time
+- [x] Uninvited, unverified, and signed-out users are denied by Firestore rules (emulator tests + live project check)
+- [x] Owner can stop sharing, edit invitees, and delete sessions; captions without an account still work as before
+
+**Possible follow-ups:** stream interim text to viewers; app-sent invitation email (Trigger Email extension + provider); viewer face-to-face/caption-size controls on `/s/*`; session retention limit.
+
+---
+
 ## Roadmap explicitly deferred (not next milestones)
 
-- Firebase auth, cloud sync, or user accounts (contradicts privacy promise unless redesigned)
 - Server-side Whisper for Firefox (large scope; new infrastructure)
 - Full test suite as a standalone milestone (add tests alongside features when they prevent regressions on touched code)
 

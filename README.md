@@ -1,6 +1,6 @@
 # Aid.me
 
-Real-time speech transcription for accessibility — closed captioning for conversations around you. Runs entirely in the browser via the Web Speech API; no accounts, no server-side transcript storage.
+Real-time speech transcription for accessibility — closed captioning for conversations around you. Captions run in the browser via the Web Speech API with no account needed. An optional account lets you share your captions live with people you invite, who follow along on their own phones.
 
 - Web: [https://aid.me](https://aid.me)
 - iOS (WebView wrapper): [Aid Hearing on the App Store](https://apps.apple.com/us/app/aid-me-hearing/id6473455500)
@@ -20,9 +20,12 @@ Verified from the current codebase:
 - **Copy transcript** — clipboard export with toast feedback (Sonner)
 - **PWA manifest** — installable shell (`public/manifest.json`)
 - **Native bridge** — `ReactNativeWebView.postMessage("refresh")` when embedded in the iOS app
+- **Accounts** — Firebase Auth with Google, email + password (verification, reset), or a passwordless email link
+- **Live sharing** — invite up to 10 emails; each finalized sentence streams to Firestore and appears in real time at `/s/{sessionId}` for invited, verified viewers
+- **Account page** — `/account` to manage shared sessions (view, stop, delete) and see sessions shared with you
 - **Static pages** — `/about`, `/privacy`, `/terms`, `/settings`
 
-No backend APIs or environment secrets are required for local development.
+There is no custom backend: the browser talks to Firebase directly, and `firestore.rules` controls who can read or write.
 
 ## Tech stack
 
@@ -36,7 +39,8 @@ No backend APIs or environment secrets are required for local development.
 | Toasts | Sonner |
 | Images | Sharp |
 | Speech | Browser Web Speech API |
-| Tests | Vitest 4 + jsdom |
+| Accounts / data | Firebase 13 (Auth, Firestore, Analytics) |
+| Tests | Vitest 4 + jsdom; Firestore rules via emulator |
 | Lint | ESLint 10 + eslint-config-next |
 | Node | `22.x` (`engines` in package.json) |
 
@@ -81,7 +85,9 @@ Open [http://localhost:3000](http://localhost:3000) and allow microphone access 
 
 ## Environment variables
 
-None required. The app only references `process.env.NODE_ENV` for build/runtime mode.
+Copy `.env.example` to `.env.local` and fill in the Firebase web app config (Firebase console → Project settings → Your apps). These `NEXT_PUBLIC_FIREBASE_*` values are public client identifiers, not secrets; access is enforced by `firestore.rules`. Add the same variables in your hosting provider (e.g. Vercel → Project → Settings → Environment Variables).
+
+Without them the app still builds and captions work; sign-in and sharing show a "not available" notice.
 
 ## Scripts
 
@@ -94,12 +100,15 @@ None required. The app only references `process.env.NODE_ENV` for build/runtime 
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Vitest once |
 | `npm run test:ci` | Vitest with `CI=true` |
+| `npm run test:rules` | Firestore security rules tests in the emulator (needs Java 21) |
+| `npm run doctor` | React Doctor full scan |
+| `npm run deploy:rules` | Deploy `firestore.rules` and indexes to the `aidmehearing` project |
 
 ## Testing and CI
 
-Unit tests live under `src/**/*.test.ts` (speech recognition, transcript, caption size, keyboard, validation, route security).
+Unit tests live under `src/**/*.test.ts`. Firestore security rules tests live in `rules/` and run against the emulator.
 
-GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: `npm ci` → lint → typecheck → test → build (Node 22). No repository secrets required for CI.
+GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs: lint → typecheck → unit tests → build, plus a separate Firestore rules job (Node 22, Java 21). No repository secrets required for CI.
 
 ## Deployment
 
@@ -112,7 +121,7 @@ App link files for the native shell:
 
 ## Privacy note
 
-Transcription runs in the browser via the platform speech service. This repo does not implement server-side storage of audio or transcripts. See `/privacy` in the running app for the product privacy policy.
+Transcription runs in the browser via the platform speech service. Audio is never stored. Transcript text is stored in Firestore only while a signed-in user is live sharing, is readable only by that user and the verified emails they invite, and can be deleted from `/account`. See `/privacy` in the running app.
 
 ## Contributing
 

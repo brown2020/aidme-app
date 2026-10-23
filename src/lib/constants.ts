@@ -84,6 +84,56 @@ export const COPY_MESSAGES = {
   FAILED: "Could not copy to clipboard",
 } as const;
 
+/** Firebase Auth error copy. Sign-in failures never reveal whether an account exists. */
+export const AUTH_ERROR_MESSAGES = {
+  INVALID_CREDENTIALS: "That email and password don't match. Try again or reset your password.",
+  EMAIL_IN_USE: "An account already exists for this email. Sign in instead.",
+  WEAK_PASSWORD: "Use a password with at least 8 characters.",
+  INVALID_EMAIL: "Enter a valid email address.",
+  MISSING_PASSWORD: "Enter your password.",
+  PASSWORDS_DONT_MATCH: "Passwords don't match.",
+  TOO_MANY_REQUESTS: "Too many attempts. Wait a few minutes and try again.",
+  NETWORK: "Can't reach the sign-in service. Check your connection and try again.",
+  POPUP_BLOCKED: "Your browser blocked the sign-in window. Allow pop-ups for this site and try again.",
+  ACCOUNT_EXISTS_DIFFERENT_METHOD:
+    "This email already uses a different sign-in method. Sign in with email or Google instead.",
+  LINK_INVALID: "This sign-in link is invalid or has expired. Request a new one.",
+  METHOD_DISABLED: "This sign-in method isn't available right now.",
+  UNAUTHORIZED_DOMAIN: "Sign-in isn't enabled for this website address.",
+  USER_DISABLED: "This account has been disabled.",
+  REQUIRES_RECENT_LOGIN: "For security, sign in again to continue.",
+  NOT_CONFIGURED: "Accounts aren't available in this build. Captions still work without signing in.",
+  GENERIC: "Something went wrong. Please try again.",
+} as const;
+
+export const MIN_PASSWORD_LENGTH = 8;
+
+/** Maximum invited viewers per live session (also enforced in firestore.rules) */
+export const MAX_SESSION_VIEWERS = 10;
+
+/** Maximum characters per transcript line (also enforced in firestore.rules) */
+export const MAX_LINE_LENGTH = 2000;
+
+/** Live shared transcript copy */
+export const LIVE_SESSION_MESSAGES = {
+  STARTED: "Live sharing is on. New lines are sent as you speak.",
+  ENDED: "Live sharing stopped.",
+  DELETED: "Session deleted.",
+  LINK_COPIED: "Link copied",
+  VIEWERS_UPDATED: "Invite list updated",
+  WRITE_FAILED: "Couldn't send the latest line to your viewers. Check your connection.",
+  START_FAILED: "Couldn't start live sharing. Please try again.",
+  UPDATE_FAILED: "Couldn't update this session. Please try again.",
+  NO_VIEWERS: "Add at least one email address.",
+  TOO_MANY_VIEWERS: `You can invite up to ${MAX_SESSION_VIEWERS} people.`,
+  VERIFY_EMAIL_FIRST: "Verify your email address before sharing, so viewers know it's really you.",
+  SHARE_SUBJECT: "Live captions from Aid.me",
+  NO_ACCESS:
+    "You don't have access to this transcript. It may have been shared with a different email address.",
+  NOT_FOUND: "This transcript doesn't exist or was deleted.",
+  LOAD_FAILED: "Couldn't load this transcript. Check your connection and refresh.",
+} as const;
+
 /** Company information for legal pages */
 export const COMPANY_INFO = {
   name: "Ignite Channel",
@@ -91,6 +141,7 @@ export const COMPANY_INFO = {
   address: "30765 Pacific Coast Hwy, Suite 354",
   location: "Malibu, CA",
   updatedAt: "November 1, 2023",
+  privacyUpdatedAt: "October 22, 2026",
 } as const;
 
 /** Navigation links */
