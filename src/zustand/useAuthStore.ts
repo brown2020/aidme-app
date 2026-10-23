@@ -11,6 +11,7 @@ export interface AuthUser {
   photoURL: string | null;
   emailVerified: boolean;
   usesPassword: boolean;
+  usesGoogle: boolean;
 }
 
 interface AuthStore {
@@ -27,6 +28,7 @@ export function toAuthUser(user: User): AuthUser {
     photoURL: user.photoURL,
     emailVerified: user.emailVerified,
     usesPassword: user.providerData.some((p) => p.providerId === "password"),
+    usesGoogle: user.providerData.some((p) => p.providerId === "google.com"),
   };
 }
 

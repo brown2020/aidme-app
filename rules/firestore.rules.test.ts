@@ -8,6 +8,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   addDoc,
+  arrayRemove,
   collection,
   deleteDoc,
   doc,
@@ -154,6 +155,20 @@ describe("session updates and deletes", () => {
     await assertSucceeds(updateDoc(ref, { status: "ended", updatedAt: serverTimestamp() }));
     await assertSucceeds(
       updateDoc(ref, { viewerEmails: ["new@example.com"], updatedAt: serverTimestamp() })
+    );
+  });
+
+  it("lets a viewer remove only their own email", async () => {
+    await seedSession({ viewerEmails: [VIEWER.email, "other@example.com"] });
+    const ref = doc(dbFor(VIEWER), "sessions", SESSION_ID);
+    await assertFails(
+      updateDoc(ref, { viewerEmails: [VIEWER.email], updatedAt: serverTimestamp() })
+    );
+    await assertFails(
+      updateDoc(ref, { viewerEmails: ["other@example.com"], status: "ended", updatedAt: serverTimestamp() })
+    );
+    await assertSucceeds(
+      updateDoc(ref, { viewerEmails: arrayRemove(VIEWER.email), updatedAt: serverTimestamp() })
     );
   });
 

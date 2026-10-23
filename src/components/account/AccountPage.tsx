@@ -16,6 +16,7 @@ import { FormMessage } from "../ui/FormMessage";
 import { UserAvatar } from "../auth/UserAvatar";
 import { VerifyEmailNotice } from "../auth/VerifyEmailNotice";
 import { OwnedSessionsList, SharedSessionsList } from "./SessionLists";
+import { DeleteAccountSection } from "./DeleteAccountSection";
 
 function ProfileSection({ user }: { user: AuthUser }) {
   const [name, setName] = useState(user.displayName ?? "");
@@ -139,6 +140,8 @@ function SignedInAccount({ user }: { user: AuthUser }) {
           <SharedSessionsList email={user.email} />
         </section>
       )}
+
+      <DeleteAccountSection user={user} />
 
       <section className="flex flex-col gap-3 border-t border-slate-800 pt-6">
         <Button

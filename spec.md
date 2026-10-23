@@ -78,6 +78,7 @@ Single-page transcription experience at `/` with global header (mic, logo/about,
 | User accounts | **Shipped** | Firebase Auth: Google (hidden in the iOS WebView), email/password with verification + reset, email link; `AuthListener` → `useAuthStore` |
 | Live shared transcripts | **Shipped** | `sessions/{id}` + `lines/{id}` in Firestore; `LiveShareButton`/`LiveShareDialog`, `useLiveTranscriptSync`, viewer at `/s/[sessionId]`; access enforced by `firestore.rules` |
 | Account page | **Shipped** | `/account`: profile name, verify email, your sessions (view/stop/delete), shared with you, sign out |
+| Account deletion | **Shipped** | `/account` → Delete account: re-auth if last sign-in > 5 min, type DELETE; deletes owned sessions + lines, removes own email from shared sessions (viewer self-removal rule), then deletes the Firebase Auth user (`lib/firebase/account.ts`) |
 | Hard sign-out | **Shipped** | Footer + account page; ends an active share, clears auth-related storage, reloads to `/` |
 | Google Analytics | **Shipped** | Firebase Analytics when `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` is set |
 | Firefox transcription | **Not supported** | No Web Speech API |
@@ -127,7 +128,7 @@ flowchart TD
 
 | Path | Fields | Who |
 |------|--------|-----|
-| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerEmails` (≤10, lowercase), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read |
+| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerEmails` (≤10, lowercase), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read; a viewer may only remove their own email |
 | `sessions/{sessionId}/lines/{lineId}` | `text` (1–2000 chars), `createdAt` (server time) | Owner appends while live and deletes; owner + viewers read; no edits |
 
 Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerEmails CONTAINS, createdAt DESC` (`firestore.indexes.json`).

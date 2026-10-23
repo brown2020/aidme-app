@@ -43,7 +43,10 @@ export default function Privacy() {
         account in Google Cloud Firestore so the people you invite can read
         them. Only you and invited people who sign in with a verified invited
         email address can read a shared session. Saved sessions remain until you
-        delete them from your account page. Because live sharing can capture
+        delete them from your account page. You can also delete your account
+        at any time from the account page, which permanently removes your
+        account, every session you shared with all of its transcript lines,
+        and your email address from sessions others shared with you. Because live sharing can capture
         other people&apos;s speech, only share conversations where everyone
         present is comfortable being transcribed.
       </p>

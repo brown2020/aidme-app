@@ -62,6 +62,13 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && validSession(request.resource.data);
 
+      // A viewer may remove only their own email (e.g. when deleting their account).
+      allow update: if isViewer(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerEmails', 'updatedAt'])
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.viewerEmails.toSet()
+             == resource.data.viewerEmails.toSet().difference([myEmail()].toSet());
+
       allow delete: if isOwner(resource.data);
 
       match /lines/{lineId} {

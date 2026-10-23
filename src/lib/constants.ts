@@ -108,6 +108,16 @@ export const AUTH_ERROR_MESSAGES = {
 
 export const MIN_PASSWORD_LENGTH = 8;
 
+/** Account deletion copy */
+export const ACCOUNT_DELETE_MESSAGES = {
+  CONFIRM_WORD: "DELETE",
+  DELETED: "Your account and all of its data were deleted.",
+  FAILED: "Couldn't delete your account. Nothing else was removed; please try again.",
+  PARTIAL:
+    "Your transcripts were deleted, but your sign-in account couldn't be removed. Sign in again and retry.",
+  REAUTH_REQUIRED: "For your security, confirm it's you before deleting your account.",
+} as const;
+
 /** Maximum invited viewers per live session (also enforced in firestore.rules) */
 export const MAX_SESSION_VIEWERS = 10;
 
