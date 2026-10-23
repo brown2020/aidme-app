@@ -1,36 +1,71 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "sonner";
-import { appendTranscriptLine } from "@/lib/firebase/liveSessions";
-import { LIVE_SESSION_MESSAGES } from "@/lib/constants";
+import { appendTranscriptLine, setInterimText } from "@/lib/firebase/liveSessions";
+import { createThrottledLatest } from "@/lib/throttledLatest";
+import { INTERIM_SYNC_INTERVAL_MS, LIVE_SESSION_MESSAGES } from "@/lib/constants";
 import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/zustand/useAuthStore";
 import { useLiveSessionStore } from "@/zustand/useLiveSessionStore";
 
+interface LiveTranscriptSync {
+  onFinalSentence: (text: string) => void;
+  onInterim: (text: string) => void;
+}
+
 /**
- * Returns a callback for finalized sentences that streams them to the active
- * live session. A no-op when signed out or not sharing.
+ * Streams speech to the active live session: in-progress words (throttled)
+ * and each finalized sentence. A no-op when signed out or not sharing.
  */
-export function useLiveTranscriptSync(): (text: string) => void {
+export function useLiveTranscriptSync(isListening: boolean): LiveTranscriptSync {
   const activeSessionId = useLiveSessionStore((s) => s.activeSessionId);
   const uid = useAuthStore((s) => s.user?.uid ?? null);
+  const sessionId = uid ? activeSessionId : null;
   const hasWarnedRef = useRef(false);
+
+  const reportFailure = useCallback((error: unknown) => {
+    logger.warn("Failed to stream transcript", error);
+    if (hasWarnedRef.current) return;
+    hasWarnedRef.current = true;
+    toast.error(LIVE_SESSION_MESSAGES.WRITE_FAILED);
+  }, []);
+
+  const interimWriter = useMemo(
+    () =>
+      sessionId
+        ? createThrottledLatest(
+            (text: string) => void setInterimText(sessionId, text).catch(reportFailure),
+            INTERIM_SYNC_INTERVAL_MS
+          )
+        : null,
+    [sessionId, reportFailure]
+  );
 
   useEffect(() => {
     hasWarnedRef.current = false;
-  }, [activeSessionId]);
+    return () => interimWriter?.cancel();
+  }, [interimWriter]);
 
-  return useCallback(
+  // Clear viewers' in-progress line when the mic stops mid-sentence.
+  useEffect(() => {
+    if (isListening || !sessionId || !interimWriter) return;
+    interimWriter.cancel();
+    setInterimText(sessionId, "").catch((error: unknown) =>
+      logger.warn("Failed to clear in-progress text", error)
+    );
+  }, [isListening, sessionId, interimWriter]);
+
+  const onInterim = useCallback((text: string) => interimWriter?.push(text), [interimWriter]);
+
+  const onFinalSentence = useCallback(
     (text: string) => {
-      if (!activeSessionId || !uid) return;
-      appendTranscriptLine(activeSessionId, text).catch((error: unknown) => {
-        logger.warn("Failed to stream transcript line", error);
-        if (hasWarnedRef.current) return;
-        hasWarnedRef.current = true;
-        toast.error(LIVE_SESSION_MESSAGES.WRITE_FAILED);
-      });
+      if (!sessionId) return;
+      interimWriter?.cancel();
+      appendTranscriptLine(sessionId, text).catch(reportFailure);
     },
-    [activeSessionId, uid]
+    [sessionId, interimWriter, reportFailure]
   );
+
+  return { onFinalSentence, onInterim };
 }

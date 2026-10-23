@@ -27,14 +27,14 @@ function ListenSession() {
     setIsTranscriptFlipped,
   } = useAppStore();
   const { startListening } = useStartListening();
-  const streamLine = useLiveTranscriptSync();
+  const liveSync = useLiveTranscriptSync(shouldListen);
   const {
     transcript,
     interimTranscript,
     isListening,
     permissionError,
     setPermissionError,
-  } = useListening(shouldListen, recognitionLanguage, streamLine);
+  } = useListening(shouldListen, recognitionLanguage, liveSync);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const isSpeechSupported = useSpeechRecognitionSupported();

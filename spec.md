@@ -130,6 +130,7 @@ flowchart TD
 |------|--------|-----|
 | `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerEmails` (≤10, lowercase), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read; a viewer may only remove their own email |
 | `sessions/{sessionId}/lines/{lineId}` | `text` (1–2000 chars), `createdAt` (server time) | Owner appends while live and deletes; owner + viewers read; no edits |
+| `sessions/{sessionId}/interim/current` | `text` (≤2000 chars, words still being spoken), `updatedAt` | Owner overwrites while live (throttled; cleared in the same batch that appends a line); owner + viewers read |
 
 Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerEmails CONTAINS, createdAt DESC` (`firestore.indexes.json`).
 
@@ -151,7 +152,7 @@ Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerEmails CONTAINS, cr
 - README dependency table can drift from `package.json` **(inferred documentation debt)**
 - Google sign-in is hidden inside the iOS WebView wrapper (Google blocks embedded web views); wrapper users sign in with email + password or an email link
 - Invites are sent from the owner's own email app / share sheet; Aid.me does not send invitation email itself
-- Viewers see finalized sentences only (no interim text)
+- In-progress words reach viewers in about 0.15–0.5 s, occasionally ~1 s, because writes to the single `interim/current` document are throttled to one per 300 ms (`INTERIM_SYNC_INTERVAL_MS`)
 
 ### Partially implemented / abandoned systems
 
@@ -335,7 +336,9 @@ Ordered by user impact and dependency. Each item is sized for **one focused comm
 - [x] Uninvited, unverified, and signed-out users are denied by Firestore rules (emulator tests + live project check)
 - [x] Owner can stop sharing, edit invitees, and delete sessions; captions without an account still work as before
 
-**Possible follow-ups:** stream interim text to viewers; app-sent invitation email (Trigger Email extension + provider); viewer face-to-face/caption-size controls on `/s/*`; session retention limit.
+- [x] Words appear for viewers while they are spoken (in-progress text), not only after each sentence ends
+
+**Possible follow-ups:** app-sent invitation email (Trigger Email extension + provider); viewer face-to-face/caption-size controls on `/s/*`; session retention limit.
 
 ---
 

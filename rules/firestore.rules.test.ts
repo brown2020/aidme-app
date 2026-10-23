@@ -227,6 +227,27 @@ describe("transcript lines", () => {
     await assertFails(addDoc(lines, { ...line(), speaker: "someone" }));
   });
 
+  it("lets the owner stream in-progress text that viewers can read", async () => {
+    await seedSession();
+    const ownerRef = doc(dbFor(OWNER), "sessions", SESSION_ID, "interim", "current");
+    await assertSucceeds(setDoc(ownerRef, { text: "how are", updatedAt: serverTimestamp() }));
+    await assertSucceeds(setDoc(ownerRef, { text: "how are you", updatedAt: serverTimestamp() }));
+    await assertSucceeds(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "interim", "current")));
+    await assertFails(getDoc(doc(dbFor(STRANGER), "sessions", SESSION_ID, "interim", "current")));
+  });
+
+  it("restricts in-progress text to the owner, one document, while live", async () => {
+    await seedSession();
+    const interim = (db: Firestore, id = "current") => doc(db, "sessions", SESSION_ID, "interim", id);
+    await assertFails(setDoc(interim(dbFor(VIEWER)), { text: "spoof", updatedAt: serverTimestamp() }));
+    await assertFails(setDoc(interim(dbFor(OWNER), "other"), { text: "x", updatedAt: serverTimestamp() }));
+    await assertFails(
+      setDoc(interim(dbFor(OWNER)), { text: "x", updatedAt: serverTimestamp(), extra: true })
+    );
+    await seedSession({ status: "ended" });
+    await assertFails(setDoc(interim(dbFor(OWNER)), { text: "late", updatedAt: serverTimestamp() }));
+  });
+
   it("stops viewer access once the owner removes them", async () => {
     await seedSession({ viewerEmails: ["someone-else@example.com"] });
     await assertFails(getDocs(collection(dbFor(VIEWER), "sessions", SESSION_ID, "lines")));

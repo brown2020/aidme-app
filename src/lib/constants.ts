@@ -121,6 +121,12 @@ export const ACCOUNT_DELETE_MESSAGES = {
 /** Maximum invited viewers per live session (also enforced in firestore.rules) */
 export const MAX_SESSION_VIEWERS = 10;
 
+/**
+ * Minimum gap between in-progress text writes. Firestore sustains about one
+ * write per second per document; short bursts faster than that are fine.
+ */
+export const INTERIM_SYNC_INTERVAL_MS = 300;
+
 /** Maximum characters per transcript line (also enforced in firestore.rules) */
 export const MAX_LINE_LENGTH = 2000;
 

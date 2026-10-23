@@ -10,6 +10,7 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
   writeBatch,
@@ -21,6 +22,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { getDb } from "./client";
+import { MAX_LINE_LENGTH } from "@/lib/constants";
 import {
   defaultSessionTitle,
   normalizeEmail,
@@ -31,6 +33,8 @@ import {
 
 const SESSIONS = "sessions";
 const LINES = "lines";
+const INTERIM = "interim";
+const INTERIM_DOC = "current";
 /** Lines a viewer loads; ~30 minutes of conversation fits comfortably */
 const MAX_VIEWER_LINES = 1000;
 const MAX_LISTED_SESSIONS = 50;
@@ -113,13 +117,32 @@ export async function setSessionStatus(
   });
 }
 
-/** Appends one finalized sentence; resolves once the server accepts it */
+function interimRef(sessionId: string) {
+  return doc(getDb(), SESSIONS, sessionId, INTERIM, INTERIM_DOC);
+}
+
+/**
+ * Appends one finalized sentence and clears the in-progress text in the same
+ * atomic write, so viewers never see the sentence twice.
+ */
 export async function appendTranscriptLine(sessionId: string, text: string): Promise<void> {
   const lineText = toLineText(text);
   if (!lineText) return;
-  await addDoc(collection(getDb(), SESSIONS, sessionId, LINES), {
+  const db = getDb();
+  const batch = writeBatch(db);
+  batch.set(doc(collection(db, SESSIONS, sessionId, LINES)), {
     text: lineText,
     createdAt: serverTimestamp(),
+  });
+  batch.set(interimRef(sessionId), { text: "", updatedAt: serverTimestamp() });
+  await batch.commit();
+}
+
+/** Replaces the words currently being spoken (not yet a finished sentence) */
+export async function setInterimText(sessionId: string, text: string): Promise<void> {
+  await setDoc(interimRef(sessionId), {
+    text: text.slice(0, MAX_LINE_LENGTH),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -134,6 +157,7 @@ export async function deleteLiveSession(sessionId: string): Promise<void> {
     page.docs.forEach((line) => batch.delete(line.ref));
     await batch.commit();
   }
+  await deleteDoc(interimRef(sessionId));
   await deleteDoc(doc(db, SESSIONS, sessionId));
 }
 
@@ -161,6 +185,21 @@ export function subscribeToLines(
       limitToLast(MAX_VIEWER_LINES)
     ),
     (snap) => onChange(snap.docs.map(toLine)),
+    onError
+  );
+}
+
+export function subscribeToInterim(
+  sessionId: string,
+  onChange: (text: string) => void,
+  onError: (error: FirestoreError) => void
+): Unsubscribe {
+  return onSnapshot(
+    interimRef(sessionId),
+    (snap) => {
+      const text = snap.data()?.text;
+      onChange(typeof text === "string" ? text : "");
+    },
     onError
   );
 }

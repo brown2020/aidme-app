@@ -56,7 +56,9 @@ export default function LiveViewer({ sessionId }: LiveViewerProps) {
 function SharedSessionView({ sessionId, email }: { sessionId: string; email: string | null }) {
   const state = useSharedSession(sessionId);
   if (state.kind === "loading") return <ViewerLoading />;
-  if (state.kind === "ready") return <ViewerTranscript session={state.session} lines={state.lines} />;
+  if (state.kind === "ready") {
+    return <ViewerTranscript session={state.session} lines={state.lines} interim={state.interim} />;
+  }
   return <ViewerProblem kind={state.kind} sessionId={sessionId} email={email} />;
 }
 
@@ -153,14 +155,23 @@ function LiveBadge({ isLive }: { isLive: boolean }) {
   );
 }
 
-function ViewerTranscript({ session, lines }: { session: LiveSession; lines: TranscriptLine[] }) {
+function ViewerTranscript({
+  session,
+  lines,
+  interim,
+}: {
+  session: LiveSession;
+  lines: TranscriptLine[];
+  interim: string;
+}) {
   const captionSize = useAppStore((s) => s.captionSize);
   const endRef = useRef<HTMLDivElement>(null);
   const isLive = session.status === "live";
+  const inProgress = isLive ? interim : "";
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [lines.length]);
+  }, [lines.length, inProgress]);
 
   const emptyMessage = isLive
     ? `Waiting for ${session.ownerName} to start speaking…`
@@ -183,12 +194,19 @@ function ViewerTranscript({ session, lines }: { session: LiveSession; lines: Tra
         lang={session.language || undefined}
         className={`flex flex-col gap-4 font-semibold tracking-tight ${getCaptionTextClassName(captionSize)}`}
       >
-        {lines.length === 0 ? (
+        {lines.length === 0 && !inProgress ? (
           <p className="text-xl font-normal text-gray-400">{emptyMessage}</p>
         ) : (
           lines.map((line) => <p key={line.id}>{line.text}</p>)
         )}
       </section>
+
+      {inProgress && (
+        // Kept outside the live region so screen readers announce finished sentences only.
+        <p className={`mt-4 font-semibold tracking-tight text-gray-300 ${getCaptionTextClassName(captionSize)}`}>
+          {inProgress}
+        </p>
+      )}
 
       {!isLive && lines.length > 0 && (
         <p className="mt-6 text-gray-400" role="status">

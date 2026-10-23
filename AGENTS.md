@@ -69,7 +69,7 @@ All logic runs in the browser after static/SSR shell delivery:
 3. Final results append to in-memory `transcript[]` (capped at `MAX_TRANSCRIPT_LENGTH`); interim text shown separately.
 4. On `onend`, recognition auto-restarts after `RECOGNITION_RESTART_DELAY_MS` if still mounted and `shouldListen` is true.
 5. `Header` auto-stops after `LISTENING_TIMEOUT_MS` (30 minutes).
-6. **Live sharing:** when `useLiveSessionStore.activeSessionId` is set and the user is signed in, `useListening`'s `onFinalSentence` callback (`useLiveTranscriptSync`) appends each sentence to `sessions/{id}/lines`. Viewers subscribe with `onSnapshot` (`useSharedSession`).
+6. **Live sharing:** when `useLiveSessionStore.activeSessionId` is set and the user is signed in, `useLiveTranscriptSync` receives `useListening`'s `onInterim` (throttled via `createThrottledLatest` into `sessions/{id}/interim/current`) and `onFinalSentence` (one batch: append to `lines` + clear interim). Viewers subscribe to session, lines, and interim with `onSnapshot` (`useSharedSession`).
 7. **Auth:** `AuthListener` (root layout) mirrors `onIdTokenChanged` into `useAuthStore` and clears the active session when the user changes. Firebase initializes lazily (`lib/firebase/client.ts`) so builds work without env vars.
 
 ### State management
