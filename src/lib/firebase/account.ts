@@ -5,19 +5,9 @@ import {
   reauthenticateWithCredential,
   reauthenticateWithPopup,
 } from "firebase/auth";
-import {
-  arrayRemove,
-  collection,
-  doc,
-  getDocs,
-  limit,
-  query,
-  serverTimestamp,
-  updateDoc,
-  where,
-} from "firebase/firestore";
+import { collection, getDocs, limit, query, where } from "firebase/firestore";
 import { getDb, getFirebaseAuth } from "./client";
-import { deleteLiveSession } from "./liveSessions";
+import { deleteLiveSession, leaveSession } from "./liveSessions";
 import { normalizeEmail } from "@/lib/liveSessionModel";
 
 /** Firebase rejects account deletion when the last sign-in is older than this */
@@ -61,14 +51,7 @@ async function leaveSharedSessions(email: string): Promise<void> {
       query(collection(db, "sessions"), where("viewerEmails", "array-contains", address), limit(PAGE_SIZE))
     );
     if (page.empty) return;
-    await Promise.all(
-      page.docs.map((session) =>
-        updateDoc(doc(db, "sessions", session.id), {
-          viewerEmails: arrayRemove(address),
-          updatedAt: serverTimestamp(),
-        })
-      )
-    );
+    await Promise.all(page.docs.map((session) => leaveSession(session.id, address)));
   }
 }
 

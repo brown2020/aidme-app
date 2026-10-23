@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import {
   deleteLiveSession,
+  leaveSession,
   setSessionStatus,
   subscribeToOwnedSessions,
   subscribeToSharedSessions,
@@ -181,21 +182,58 @@ export function SharedSessionsList({ email }: { email: string }) {
   return (
     <ul className="flex flex-col gap-3">
       {state.sessions.map((session) => (
-        <li key={session.id}>
-          <Link
-            href={`/s/${session.id}`}
-            className="flex flex-col gap-1 rounded-lg border border-slate-800 bg-slate-950 p-4 hover:border-slate-600"
-          >
-            <span className="flex flex-wrap items-center gap-2 font-medium">
-              {session.ownerName}
-              <StatusBadge status={session.status} />
-            </span>
-            <span className="text-sm text-gray-400">
-              {session.title} · {formatSessionDate(session.createdAt)}
-            </span>
-          </Link>
-        </li>
+        <SharedSessionRow key={session.id} session={session} email={email} />
       ))}
     </ul>
+  );
+}
+
+function SharedSessionRow({ session, email }: { session: LiveSession; email: string }) {
+  const [confirming, setConfirming] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+
+  const leave = async () => {
+    setIsLeaving(true);
+    try {
+      await leaveSession(session.id, email);
+      toast.success(LIVE_SESSION_MESSAGES.LEFT);
+    } catch (error) {
+      logger.warn("Failed to leave session", error);
+      toast.error(LIVE_SESSION_MESSAGES.LEAVE_FAILED);
+    } finally {
+      setIsLeaving(false);
+      setConfirming(false);
+    }
+  };
+
+  return (
+    <li className="flex flex-col gap-3 rounded-lg border border-slate-800 bg-slate-950 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <Link href={`/s/${session.id}`} className="flex min-w-0 flex-col gap-1 hover:underline">
+        <span className="flex flex-wrap items-center gap-2 font-medium">
+          {session.ownerName}
+          <StatusBadge status={session.status} />
+        </span>
+        <span className="text-sm text-gray-400">
+          {session.title} · {formatSessionDate(session.createdAt)}
+        </span>
+      </Link>
+      <div className="flex shrink-0 flex-wrap gap-2">
+        {confirming ? (
+          <>
+            <Button size="sm" variant="danger" onClick={() => void leave()} disabled={isLeaving}>
+              {isLeaving && <Loader2 size={14} className="animate-spin" aria-hidden />}
+              Leave session
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setConfirming(false)} disabled={isLeaving}>
+              Cancel
+            </Button>
+          </>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={() => setConfirming(true)}>
+            Leave
+          </Button>
+        )}
+      </div>
+    </li>
   );
 }

@@ -29,6 +29,7 @@ Agent instructions: see [AGENTS.md](./AGENTS.md). Human setup: see [README.md](.
 7. **Account:** `/sign-in` → Google, email + password (with forgot password and email verification), or a passwordless email link → `/account` for profile, sessions, and sign-out
 8. **Live sharing (owner):** Signed in with a verified email → “Share live” → enter invitee emails → Email invite / Share sheet / Copy link → each finalized sentence streams to Firestore → “Stop sharing”
 9. **Live viewing (invitee):** Open `/s/{sessionId}` → sign in with the invited, verified email → captions appear in real time; access ends immediately if the owner removes them or deletes the session
+10. **Viewer stops listening:** "Stop listening" disconnects the stream on that device (Resume catches up on everything sent meanwhile); "Remove me from this session" (viewer page) or "Leave" (account → Shared with you) removes their email so they no longer have access
 
 ### Product goals
 

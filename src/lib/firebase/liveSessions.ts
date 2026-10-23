@@ -1,5 +1,6 @@
 import {
   addDoc,
+  arrayRemove,
   collection,
   deleteDoc,
   doc,
@@ -103,6 +104,14 @@ export async function createLiveSession(
 export async function updateSessionViewers(sessionId: string, viewerEmails: string[]): Promise<void> {
   await updateDoc(doc(getDb(), SESSIONS, sessionId), {
     viewerEmails,
+    updatedAt: serverTimestamp(),
+  });
+}
+
+/** Removes the signed-in viewer's own email, ending their access to the session */
+export async function leaveSession(sessionId: string, email: string): Promise<void> {
+  await updateDoc(doc(getDb(), SESSIONS, sessionId), {
+    viewerEmails: arrayRemove(normalizeEmail(email)),
     updatedAt: serverTimestamp(),
   });
 }

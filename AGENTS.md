@@ -123,6 +123,7 @@ All logic runs in the browser after static/SSR shell delivery:
 - Error boundary with dev-only stack display
 - Firebase accounts: Google, email + password (verification, reset, eye toggle), email link; hard sign-out in footer and account page
 - Live shared transcripts to up to 10 invited, verified emails; invite via email app, share sheet, or copied link; stop, edit invitees, delete
+- Viewers can stop listening (unsubscribes; resume catches up) and leave a session (removes own email via `leaveSession`)
 - Full account deletion from `/account` (owned sessions + lines, own email in others' sessions, Firebase Auth user)
 
 ## Important commands

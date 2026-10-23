@@ -148,6 +148,8 @@ export const LIVE_SESSION_MESSAGES = {
     "You don't have access to this transcript. It may have been shared with a different email address.",
   NOT_FOUND: "This transcript doesn't exist or was deleted.",
   LOAD_FAILED: "Couldn't load this transcript. Check your connection and refresh.",
+  LEFT: "You left this session. You won't receive its captions anymore.",
+  LEAVE_FAILED: "Couldn't remove you from this session. Please try again.",
 } as const;
 
 /** Company information for legal pages */

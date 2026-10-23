@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { Loader2, Play, Square } from "lucide-react";
 import { isFirebaseConfigured } from "@/lib/firebase/client";
-import type { LiveSession, TranscriptLine } from "@/lib/liveSessionModel";
+import { leaveSession } from "@/lib/firebase/liveSessions";
+import { normalizeEmail, type LiveSession, type TranscriptLine } from "@/lib/liveSessionModel";
+import { logger } from "@/lib/logger";
 import { getCaptionTextClassName } from "@/lib/captionSize";
 import { AUTH_ERROR_MESSAGES, LIVE_SESSION_MESSAGES } from "@/lib/constants";
 import { useAppStore } from "@/zustand/useAppStore";
@@ -53,13 +55,116 @@ export default function LiveViewer({ sessionId }: LiveViewerProps) {
   return <SharedSessionView key={user.uid} sessionId={sessionId} email={user.email} />;
 }
 
+/** Who the viewer stopped listening to, kept so the paused screen can name them */
+interface StoppedSession {
+  ownerName: string;
+  isOwner: boolean;
+}
+
 function SharedSessionView({ sessionId, email }: { sessionId: string; email: string | null }) {
+  const [stopped, setStopped] = useState<StoppedSession | null>(null);
+  // While stopped, the subscribing component is unmounted, so nothing streams in.
+  if (stopped) {
+    return (
+      <ViewerStopped
+        sessionId={sessionId}
+        email={email}
+        stopped={stopped}
+        onResume={() => setStopped(null)}
+      />
+    );
+  }
+  return <ListeningView sessionId={sessionId} email={email} onStop={setStopped} />;
+}
+
+function ListeningView({
+  sessionId,
+  email,
+  onStop,
+}: {
+  sessionId: string;
+  email: string | null;
+  onStop: (stopped: StoppedSession) => void;
+}) {
   const state = useSharedSession(sessionId);
   if (state.kind === "loading") return <ViewerLoading />;
   if (state.kind === "ready") {
-    return <ViewerTranscript session={state.session} lines={state.lines} interim={state.interim} />;
+    const { session } = state;
+    const isOwner = Boolean(email) && normalizeEmail(email ?? "") === session.ownerEmail;
+    return (
+      <ViewerTranscript
+        session={session}
+        lines={state.lines}
+        interim={state.interim}
+        onStop={() => onStop({ ownerName: session.ownerName, isOwner })}
+      />
+    );
   }
   return <ViewerProblem kind={state.kind} sessionId={sessionId} email={email} />;
+}
+
+function ViewerStopped({
+  sessionId,
+  email,
+  stopped,
+  onResume,
+}: {
+  sessionId: string;
+  email: string | null;
+  stopped: StoppedSession;
+  onResume: () => void;
+}) {
+  const [leaveState, setLeaveState] = useState<"idle" | "leaving" | "left" | "failed">("idle");
+
+  const leave = async () => {
+    if (!email) return;
+    setLeaveState("leaving");
+    try {
+      await leaveSession(sessionId, email);
+      setLeaveState("left");
+    } catch (error) {
+      logger.warn("Failed to leave session", error);
+      setLeaveState("failed");
+    }
+  };
+
+  if (leaveState === "left") {
+    return (
+      <CenteredPanel>
+        <FormMessage tone="success">{LIVE_SESSION_MESSAGES.LEFT}</FormMessage>
+        <Link href="/" className="text-blue-300 underline underline-offset-2 hover:text-blue-200">
+          Go to my captions
+        </Link>
+      </CenteredPanel>
+    );
+  }
+
+  return (
+    <CenteredPanel>
+      <h1 className="text-2xl font-semibold">You stopped listening</h1>
+      <p className="text-gray-300">
+        Captions from {stopped.ownerName} are no longer streaming to this device.
+      </p>
+      <Button size="lg" onClick={onResume}>
+        <Play size={18} aria-hidden />
+        Resume listening
+      </Button>
+      {!stopped.isOwner && (
+        <>
+          <Button variant="secondary" onClick={() => void leave()} disabled={leaveState === "leaving"}>
+            {leaveState === "leaving" && <Loader2 size={16} className="animate-spin" aria-hidden />}
+            Remove me from this session
+          </Button>
+          <p className="text-sm text-gray-400">
+            Removing yourself ends your access. {stopped.ownerName} would need to invite you again.
+          </p>
+        </>
+      )}
+      {leaveState === "failed" && (
+        <FormMessage tone="error">{LIVE_SESSION_MESSAGES.LEAVE_FAILED}</FormMessage>
+      )}
+    </CenteredPanel>
+  );
 }
 
 function CenteredPanel({ children }: { children: ReactNode }) {
@@ -159,10 +264,12 @@ function ViewerTranscript({
   session,
   lines,
   interim,
+  onStop,
 }: {
   session: LiveSession;
   lines: TranscriptLine[];
   interim: string;
+  onStop: () => void;
 }) {
   const captionSize = useAppStore((s) => s.captionSize);
   const endRef = useRef<HTMLDivElement>(null);
@@ -184,7 +291,13 @@ function ViewerTranscript({
           <h1 className="text-2xl font-semibold">{session.ownerName}</h1>
           <p className="text-gray-400">{session.title}</p>
         </div>
-        <LiveBadge isLive={isLive} />
+        <div className="flex items-center gap-3">
+          <LiveBadge isLive={isLive} />
+          <Button variant="secondary" size="sm" onClick={onStop}>
+            <Square size={14} aria-hidden />
+            Stop listening
+          </Button>
+        </div>
       </div>
 
       <section
