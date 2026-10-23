@@ -116,6 +116,7 @@ export const ACCOUNT_DELETE_MESSAGES = {
   PARTIAL:
     "Your transcripts were deleted, but your sign-in account couldn't be removed. Sign in again and retry.",
   REAUTH_REQUIRED: "For your security, confirm it's you before deleting your account.",
+  LINK_FAILED: "Couldn't send the confirmation link. Please try again.",
 } as const;
 
 /** Maximum invited viewers per live session (also enforced in firestore.rules) */

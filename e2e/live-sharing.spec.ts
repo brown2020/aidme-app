@@ -83,6 +83,55 @@ test("owner streams words and sentences; viewer can stop, resume, and leave", as
   await expect(ownerPage.getByText("Invited (0/10)")).toBeVisible();
 });
 
+/** Stated before measuring: p95 time from a spoken word to the viewer's screen */
+const WORD_LATENCY_BUDGET_MS = 1000;
+
+test("in-progress words reach the viewer within the latency budget", async ({ browser }) => {
+  const owner = await createVerifiedUser("Olivia Owner", "olivia@example.com");
+  const viewer = await createVerifiedUser("Victor Viewer", "victor@example.com");
+  const ownerPage = await (await browser.newContext()).newPage();
+  await useFakeSpeech(ownerPage);
+  await signIn(ownerPage, owner);
+  const sessionPath = await startSharing(ownerPage, viewer.email);
+  await ownerPage.getByRole("button", { name: "Start listening", exact: true }).click();
+
+  const viewerPage = await (await browser.newContext()).newPage();
+  await signIn(viewerPage, viewer, sessionPath);
+  await expect(viewerPage.getByRole("heading", { name: "Olivia Owner" })).toBeVisible();
+  await viewerPage.evaluate(() => {
+    const seen: Record<string, number> = {};
+    Object.assign(window, { __seen: seen });
+    new MutationObserver(() => {
+      const text = document.querySelector("main section + p")?.textContent ?? "";
+      if (text && !(text in seen)) seen[text] = Date.now();
+    }).observe(document.body, { subtree: true, childList: true, characterData: true });
+  });
+
+  const words = "one two three four five six seven eight nine ten".split(" ");
+  const spokenAt: Record<string, number> = {};
+  for (let i = 1; i <= words.length; i++) {
+    const text = words.slice(0, i).join(" ");
+    spokenAt[text] = Date.now();
+    await ownerPage.evaluate((t) => window.__speak(t, false), text);
+    await ownerPage.waitForTimeout(250);
+  }
+  await viewerPage.waitForTimeout(1500);
+  const seen = (await viewerPage.evaluate(() => (window as unknown as { __seen: Record<string, number> }).__seen));
+  // Throttling may skip intermediate words; every word shown must be on time, and the last must arrive.
+  const delays = Object.entries(seen).map(([text, at]) => at - spokenAt[text]).sort((a, b) => a - b);
+  expect(Object.keys(seen)).toContain(words.join(" "));
+  const p95 = delays[Math.min(delays.length - 1, Math.floor(delays.length * 0.95))];
+  test.info().annotations.push({ type: "word-latency-ms", description: JSON.stringify(delays) });
+  expect(p95).toBeLessThanOrEqual(WORD_LATENCY_BUDGET_MS);
+
+  // The live region exposes finished sentences to assistive technology.
+  await ownerPage.evaluate(() => window.__speak("one two three four five six seven eight nine ten", true));
+  await expect(viewerPage.locator("main section")).toMatchAriaSnapshot(`
+    - region "Captions from Olivia Owner":
+      - paragraph: One two three four five six seven eight nine ten.
+  `);
+});
+
 test("invitee emails stay off the session, and deleting the account removes everything", async ({ page }) => {
   const owner = await createVerifiedUser("Olivia Owner", "olivia@example.com");
   await signIn(page, owner);

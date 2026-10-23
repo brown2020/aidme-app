@@ -113,7 +113,7 @@ Without them the app still builds and captions work; sign-in and sharing show a 
 
 - Unit tests: `src/**/*.test.ts`, including a contract test that keeps Firestore field names in code and in `firestore.rules` identical.
 - Security rules: `rules/`, run against the Firestore emulator.
-- End to end: `e2e/` builds the app into `.next-e2e` pointed at the emulators, fakes the microphone and speech recognition, and covers signed-out captions (no Firestore download), sign-in, live sharing with word-by-word streaming, viewer stop/resume/leave, account deletion, keyboard use, and axe checks on desktop and phone.
+- End to end: `e2e/` builds the app into `.next-e2e` pointed at the emulators, fakes the microphone and speech recognition, and covers signed-out captions (no Firestore download), sign-in, live sharing with word-by-word streaming, viewer stop/resume/leave, account deletion, every sign-in path (password, sign-up with email verification, forgot password, email link, and Google via the emulator's provider window), a word-latency budget (p95 ≤ 1 s), keyboard use, accessibility-tree snapshots, and axe checks on desktop and phone.
 
 GitHub Actions (`.github/workflows/ci.yml`) on `dev` / `main` and PRs runs three jobs: checks (lint, typecheck, unit tests, build), Firestore rules, and end-to-end. No repository secrets are required.
 
@@ -127,6 +127,8 @@ Production runbook:
 2. After changing `firestore.rules` or `firestore.indexes.json`, run `npm run test:rules`, then `npm run deploy:rules`. Rules are not deployed by Vercel.
 3. App Check (reCAPTCHA Enterprise key in the `aidmehearing` Google Cloud project) is enforced for Firestore. A new domain must be added to that key, and to Firebase Auth's authorized domains, before sign-in works there.
 4. Live-sharing failures are reported to Google Analytics as `live_write_failed`, `session_list_failed`, and similar events (see `reportOperationalEvent`).
+5. Rollback: promote the previous deployment in Vercel (Deployments → ⋯ → Promote to Production). Firestore rules can be rolled back from the Firebase console's Rules history. App Check enforcement can be switched back to unenforced in the Firebase console (App Check → APIs → Cloud Firestore) if tokens ever fail for real users.
+6. App Check is enforced for Firestore only. Sign-in (Identity Toolkit) is left unenforced so a low reCAPTCHA score can't lock someone out of their account; Firebase Auth's own email quotas limit link and reset abuse.
 
 App link files for the native shell:
 

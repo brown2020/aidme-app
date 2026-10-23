@@ -20,8 +20,6 @@ import { Button } from "../ui/Button";
 import { FormMessage } from "../ui/FormMessage";
 import { TextField } from "../ui/TextField";
 import { PasswordField } from "../auth/PasswordField";
-import { useSignOut } from "@/hooks/useSignOut";
-
 function errorMessage(error: unknown): string {
   if (error instanceof AccountRemovalIncompleteError) return ACCOUNT_DELETE_MESSAGES.PARTIAL;
   return getAuthErrorMessage(error) ?? ACCOUNT_DELETE_MESSAGES.FAILED;
@@ -145,7 +143,21 @@ function ReauthFields({
   onPasswordChange: (value: string) => void;
   onGoogle: () => void;
 }) {
-  const { signOut } = useSignOut();
+  const [linkState, setLinkState] = useState<"idle" | "sending" | "sent" | "failed">("idle");
+
+  const sendConfirmationLink = async () => {
+    if (!user.email) return;
+    setLinkState("sending");
+    try {
+      const { sendEmailSignInLink } = await import("@/lib/firebase/auth");
+      await sendEmailSignInLink(user.email, "/account?confirmDelete=1");
+      setLinkState("sent");
+    } catch (error) {
+      logger.warn("Failed to send confirmation link", error);
+      setLinkState("failed");
+    }
+  };
+
   return (
     <div className="flex flex-col gap-3 rounded-md bg-slate-900 p-3">
       <p className="text-sm text-gray-200">{ACCOUNT_DELETE_MESSAGES.REAUTH_REQUIRED}</p>
@@ -162,17 +174,25 @@ function ReauthFields({
           onChange={(e) => onPasswordChange(e.target.value)}
         />
       )}
-      <p className="text-sm text-gray-400">
-        Signed in with an email link?{" "}
-        <button
-          type="button"
-          className="text-blue-300 underline underline-offset-2 hover:text-blue-200"
-          onClick={() => void signOut("/sign-in?redirect=%2Faccount")}
-        >
-          Sign in again
-        </button>
-        , then come back here within 5 minutes.
-      </p>
+      {linkState === "sent" ? (
+        <FormMessage tone="success">
+          Check your inbox at {user.email} and open the link; you&apos;ll come back here ready to delete.
+        </FormMessage>
+      ) : (
+        <p className="text-sm text-gray-400">
+          Signed in with an email link?{" "}
+          <button
+            type="button"
+            className="text-blue-300 underline underline-offset-2 hover:text-blue-200"
+            onClick={() => void sendConfirmationLink()}
+            disabled={linkState === "sending"}
+          >
+            Email me a confirmation link
+          </button>
+          .
+        </p>
+      )}
+      {linkState === "failed" && <FormMessage tone="error">{ACCOUNT_DELETE_MESSAGES.LINK_FAILED}</FormMessage>}
     </div>
   );
 }

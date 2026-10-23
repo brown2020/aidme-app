@@ -93,6 +93,24 @@ export async function signIn(page: Page, user: TestUser, redirect = "/"): Promis
   await page.waitForURL((url) => url.pathname === redirect.split("?")[0]);
 }
 
+interface OobCode {
+  email: string;
+  oobLink: string;
+  requestType: "VERIFY_EMAIL" | "PASSWORD_RESET" | "EMAIL_SIGNIN";
+}
+
+/** The newest email the Auth emulator "sent" to this address of the given type */
+export async function latestEmail(email: string, requestType: OobCode["requestType"]): Promise<OobCode> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const res = await fetch(`${AUTH}/emulator/v1/projects/${PROJECT}/oobCodes`);
+    const { oobCodes } = (await res.json()) as { oobCodes: OobCode[] };
+    const match = oobCodes.filter((c) => c.email === email && c.requestType === requestType).pop();
+    if (match) return match;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`No ${requestType} email for ${email}`);
+}
+
 /** Reads a document straight from the Firestore emulator, bypassing rules */
 export async function readDoc(path: string): Promise<Record<string, unknown> | null> {
   const res = await fetch(
