@@ -1,12 +1,18 @@
 rules_version = '2';
 
 // Live shared transcripts.
-// sessions/{sessionId}: owned by one user; invitees are stored only as
-//   SHA-256 fingerprints of their email (viewerKeys).
-// sessions/{sessionId}/private/invites: the invited emails, owner-only.
+// sessions/{sessionId}: owned by one user. Invite fingerprints are NOT stored
+//   here, so a viewer who can read the session cannot see who else was invited.
+// sessions/{sessionId}/members/{emailKey}: one invite. uid is "" until that
+//   person opens the session, then it is their Firebase uid. After that, the
+//   email hash is no longer a bearer token.
+// sessions/{sessionId}/access is not used; the uid binding lives at
+//   accounts/{uid}/sessions/{sessionId} so an email change keeps access.
+// inboxes/{emailKey}/sessions/{sessionId}: unclaimed invite, readable only
+//   with that email. Deleted when the invite is claimed or revoked.
+// sessions/{sessionId}/private/invites: plain emails, owner-only.
 // sessions/{sessionId}/lines/{lineId}: append-only finished sentences.
-// sessions/{sessionId}/interim/{slot}: words still being spoken, rotated
-//   across four documents to stay under per-document write limits.
+// sessions/{sessionId}/interim/{slot}: words still being spoken.
 //
 // Field lists must match src/lib/liveSessionModel.ts (see firestoreSchema.test.ts).
 service cloud.firestore {
@@ -35,29 +41,140 @@ service cloud.firestore {
       return signedIn() && data.ownerUid == request.auth.uid;
     }
 
-    // Unverified accounts could claim any address, so viewers must be verified.
-    function isViewer(data) {
-      return hasVerifiedEmail() && viewerKey() in data.viewerKeys;
+    function isHexKey(value) {
+      return value is string && value.matches('^[0-9a-f]{64}$');
+    }
+
+    function isEmail(value) {
+      return value is string
+        && value.size() > 0
+        && value.size() <= 320
+        && value.matches('^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$');
+    }
+
+    function emailsOk(list) {
+      return list is list
+        && list.size() <= 10
+        && (list.size() < 1 || isEmail(list[0]))
+        && (list.size() < 2 || isEmail(list[1]))
+        && (list.size() < 3 || isEmail(list[2]))
+        && (list.size() < 4 || isEmail(list[3]))
+        && (list.size() < 5 || isEmail(list[4]))
+        && (list.size() < 6 || isEmail(list[5]))
+        && (list.size() < 7 || isEmail(list[6]))
+        && (list.size() < 8 || isEmail(list[7]))
+        && (list.size() < 9 || isEmail(list[8]))
+        && (list.size() < 10 || isEmail(list[9]));
+    }
+
+    function keysOk(list) {
+      return list is list
+        && list.size() <= 10
+        && (list.size() < 1 || isHexKey(list[0]))
+        && (list.size() < 2 || isHexKey(list[1]))
+        && (list.size() < 3 || isHexKey(list[2]))
+        && (list.size() < 4 || isHexKey(list[3]))
+        && (list.size() < 5 || isHexKey(list[4]))
+        && (list.size() < 6 || isHexKey(list[5]))
+        && (list.size() < 7 || isHexKey(list[6]))
+        && (list.size() < 8 || isHexKey(list[7]))
+        && (list.size() < 9 || isHexKey(list[8]))
+        && (list.size() < 10 || isHexKey(list[9]));
     }
 
     function sessionKeys() {
       return ['ownerUid', 'ownerName', 'ownerEmail', 'title', 'status',
-              'language', 'viewerKeys', 'createdAt', 'updatedAt'];
+              'language', 'createdAt', 'updatedAt'];
     }
 
     function validSession(d) {
       return d.keys().hasOnly(sessionKeys())
         && d.keys().hasAll(sessionKeys())
+        && d.ownerUid is string && d.ownerUid.size() > 0 && d.ownerUid.size() <= 128
         && d.ownerName is string && d.ownerName.size() > 0 && d.ownerName.size() <= 100
+        && d.ownerEmail is string && d.ownerEmail.size() > 0 && d.ownerEmail.size() <= 320
         && d.title is string && d.title.size() <= 120
         && d.status in ['live', 'ended']
-        && d.language is string && d.language.size() <= 20
-        && d.viewerKeys is list && d.viewerKeys.size() <= 10
+        && d.language is string && d.language.size() > 0 && d.language.size() <= 20
+        && d.createdAt is timestamp
         && d.updatedAt == request.time;
     }
 
+    function validInvites(d) {
+      return d.keys().hasOnly(['emails', 'emailKeys', 'updatedAt'])
+        && d.keys().hasAll(['emails', 'emailKeys', 'updatedAt'])
+        && emailsOk(d.emails)
+        && keysOk(d.emailKeys)
+        && d.emails.size() == d.emailKeys.size()
+        && d.updatedAt == request.time;
+    }
+
+    function sessionPath(sessionId) {
+      return /databases/$(database)/documents/sessions/$(sessionId);
+    }
+
+    function memberPath(sessionId, memberId) {
+      return /databases/$(database)/documents/sessions/$(sessionId)/members/$(memberId);
+    }
+
+    function accountPath(uid, sessionId) {
+      return /databases/$(database)/documents/accounts/$(uid)/sessions/$(sessionId);
+    }
+
+    function inboxPath(emailKey, sessionId) {
+      return /databases/$(database)/documents/inboxes/$(emailKey)/sessions/$(sessionId);
+    }
+
+    // Email still opens the session only while nobody has claimed it.
+    function hasUnclaimedInvite(sessionId) {
+      return hasVerifiedEmail()
+        && isHexKey(viewerKey())
+        && exists(inboxPath(viewerKey(), sessionId))
+        && exists(memberPath(sessionId, viewerKey()))
+        && get(memberPath(sessionId, viewerKey())).data.uid == '';
+    }
+
+    // Same account, current email, already claimed.
+    function hasClaimedEmail(sessionId) {
+      return hasVerifiedEmail()
+        && exists(memberPath(sessionId, viewerKey()))
+        && get(memberPath(sessionId, viewerKey())).data.uid == request.auth.uid;
+    }
+
+    // Claim binds the session to the Firebase uid, so a later mailbox owner
+    // does not inherit it and an email change does not drop it.
+    function hasUidAccess(sessionId) {
+      return signedIn()
+        && exists(accountPath(request.auth.uid, sessionId))
+        && isHexKey(get(accountPath(request.auth.uid, sessionId)).data.emailKey)
+        && exists(memberPath(sessionId, get(accountPath(request.auth.uid, sessionId)).data.emailKey))
+        && get(memberPath(sessionId, get(accountPath(request.auth.uid, sessionId)).data.emailKey)).data.uid
+             == request.auth.uid;
+    }
+
+    // Sessions written before membership docs. The owner client removes
+    // viewerKeys after copying them into members/.
+    function hasLegacyKey(data) {
+      return hasVerifiedEmail()
+        && data.keys().hasAll(['viewerKeys'])
+        && data.viewerKeys is list
+        && data.viewerKeys.size() <= 10
+        && viewerKey() in data.viewerKeys;
+    }
+
+    function isViewer(sessionId, data) {
+      return hasUidAccess(sessionId)
+        || hasUnclaimedInvite(sessionId)
+        || hasClaimedEmail(sessionId)
+        || hasLegacyKey(data);
+    }
+
     match /sessions/{sessionId} {
-      allow get, list: if isOwner(resource.data) || isViewer(resource.data);
+      allow get: if isOwner(resource.data) || isViewer(sessionId, resource.data);
+
+      // Viewers find their sessions through inboxes/ or accounts/, never by
+      // scanning this collection (that scan is what exposed every invite hash).
+      allow list: if isOwner(resource.data);
 
       allow create: if hasVerifiedEmail()
         && request.resource.data.ownerUid == request.auth.uid
@@ -73,22 +190,14 @@ service cloud.firestore {
         && request.resource.data.createdAt == resource.data.createdAt
         && validSession(request.resource.data);
 
-      // A viewer may remove only their own fingerprint (leaving, or deleting their account).
-      allow update: if isViewer(resource.data)
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['viewerKeys', 'updatedAt'])
-        && request.resource.data.updatedAt == request.time
-        && request.resource.data.viewerKeys.toSet()
-             == resource.data.viewerKeys.toSet().difference([viewerKey()].toSet());
-
       allow delete: if isOwner(resource.data);
 
       function session() {
-        return get(/databases/$(database)/documents/sessions/$(sessionId)).data;
+        return get(sessionPath(sessionId)).data;
       }
 
-      // Lets the invites document be written in the same batch that creates the session.
       function sessionAfter() {
-        return getAfter(/databases/$(database)/documents/sessions/$(sessionId)).data;
+        return getAfter(sessionPath(sessionId)).data;
       }
 
       match /private/{docId} {
@@ -96,17 +205,57 @@ service cloud.firestore {
 
         allow create, update: if docId == 'invites'
           && isOwner(sessionAfter())
-          && request.resource.data.keys().hasOnly(['emails', 'updatedAt'])
-          && request.resource.data.keys().hasAll(['emails', 'updatedAt'])
-          && request.resource.data.emails is list
-          && request.resource.data.emails.size() <= 10
-          && request.resource.data.updatedAt == request.time;
+          && validInvites(request.resource.data);
 
         allow delete: if isOwner(session());
       }
 
+      match /members/{memberId} {
+        function selfMember() {
+          return hasVerifiedEmail() && (
+            resource.data.uid == request.auth.uid
+            || (memberId == viewerKey() && resource.data.uid == '')
+          );
+        }
+
+        allow get: if isOwner(session()) || selfMember();
+
+        // Separate statements so an owner's unfiltered list does not have to
+        // satisfy the resource-field branches. A viewer query must name their
+        // own row, so other fingerprints stay unread.
+        allow list: if isOwner(session());
+        allow list: if hasVerifiedEmail() && resource.data.uid == request.auth.uid;
+        allow list: if hasVerifiedEmail()
+          && resource.data.emailKey == viewerKey()
+          && resource.data.uid == '';
+
+        allow create: if isHexKey(memberId)
+          && isOwner(sessionAfter())
+          && existsAfter(/databases/$(database)/documents/sessions/$(sessionId)/private/invites)
+          && memberId in getAfter(/databases/$(database)/documents/sessions/$(sessionId)/private/invites).data.emailKeys
+          && request.resource.data.keys().hasOnly(['emailKey', 'uid'])
+          && request.resource.data.keys().hasAll(['emailKey', 'uid'])
+          && request.resource.data.emailKey == memberId
+          && request.resource.data.uid == '';
+
+        // First open claims the invite for this account.
+        allow update: if isHexKey(memberId)
+          && hasVerifiedEmail()
+          && memberId == viewerKey()
+          && resource.data.uid == ''
+          && resource.data.emailKey == memberId
+          && request.resource.data.keys().hasOnly(['emailKey', 'uid'])
+          && request.resource.data.keys().hasAll(['emailKey', 'uid'])
+          && request.resource.data.emailKey == memberId
+          && request.resource.data.uid == request.auth.uid;
+
+        allow delete: if isOwner(session())
+          || (hasVerifiedEmail() && resource.data.uid == request.auth.uid)
+          || (hasVerifiedEmail() && memberId == viewerKey() && resource.data.uid == '');
+      }
+
       match /interim/{slot} {
-        allow read: if isOwner(session()) || isViewer(session());
+        allow read: if isOwner(session()) || isViewer(sessionId, session());
 
         allow create, update: if slot in ['0', '1', '2', '3']
           && isOwner(session())
@@ -123,7 +272,7 @@ service cloud.firestore {
       }
 
       match /lines/{lineId} {
-        allow read: if isOwner(session()) || isViewer(session());
+        allow read: if isOwner(session()) || isViewer(sessionId, session());
 
         allow create: if isOwner(session())
           && session().status == 'live'
@@ -137,6 +286,44 @@ service cloud.firestore {
         allow update: if false;
         allow delete: if isOwner(session());
       }
+    }
+
+    // Unclaimed invites, keyed by the email hash. Only that verified email can read.
+    match /inboxes/{emailKey}/sessions/{sessionId} {
+      allow get, list: if hasVerifiedEmail() && emailKey == viewerKey();
+
+      allow create: if isHexKey(emailKey)
+        && isOwner(getAfter(sessionPath(sessionId)).data)
+        && existsAfter(/databases/$(database)/documents/sessions/$(sessionId)/private/invites)
+        && emailKey in getAfter(/databases/$(database)/documents/sessions/$(sessionId)/private/invites).data.emailKeys
+        && request.resource.data.keys().hasOnly(['createdAt'])
+        && request.resource.data.keys().hasAll(['createdAt'])
+        && request.resource.data.createdAt == request.time;
+
+      allow delete: if isOwner(get(sessionPath(sessionId)).data)
+        || (hasVerifiedEmail() && emailKey == viewerKey());
+
+      allow update: if false;
+    }
+
+    // Claimed invites, keyed by Firebase uid. Survives an email change.
+    match /accounts/{uid}/sessions/{sessionId} {
+      allow get, list: if signedIn() && request.auth.uid == uid;
+
+      allow create: if signedIn()
+        && uid == request.auth.uid
+        && hasVerifiedEmail()
+        && existsAfter(memberPath(sessionId, viewerKey()))
+        && getAfter(memberPath(sessionId, viewerKey())).data.uid == request.auth.uid
+        && request.resource.data.keys().hasOnly(['emailKey', 'createdAt'])
+        && request.resource.data.keys().hasAll(['emailKey', 'createdAt'])
+        && request.resource.data.emailKey == viewerKey()
+        && request.resource.data.createdAt == request.time;
+
+      allow delete: if (signedIn() && request.auth.uid == uid)
+        || isOwner(get(sessionPath(sessionId)).data);
+
+      allow update: if false;
     }
   }
 }

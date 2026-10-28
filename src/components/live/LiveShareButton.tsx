@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Radio } from "lucide-react";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
 import { useActiveLiveSession } from "@/hooks/useActiveLiveSession";
+import { useMemberCount } from "@/hooks/useMemberCount";
 import { useAuthStore } from "@/zustand/useAuthStore";
 
 // Loaded on first open so the transcript screen doesn't ship Firestore up front.
@@ -21,6 +22,7 @@ const buttonClassName =
 export function LiveShareButton() {
   const status = useAuthStore((s) => s.status);
   const session = useActiveLiveSession();
+  const inviteCount = useMemberCount(session?.id ?? null);
   const [isOpen, setIsOpen] = useState(false);
 
   if (!isFirebaseConfigured() || status === "unknown") return null;
@@ -47,7 +49,11 @@ export function LiveShareButton() {
         aria-haspopup="dialog"
       >
         <Radio size={16} aria-hidden className={isLive ? "animate-pulse" : undefined} />
-        {isLive ? `Live · ${session.viewerKeys.length} invited` : "Share live"}
+        {isLive
+          ? inviteCount === null
+            ? "Live"
+            : `Live · ${inviteCount} invited`
+          : "Share live"}
       </button>
       {isOpen && <LiveShareDialog session={session} onClose={() => setIsOpen(false)} />}
     </>

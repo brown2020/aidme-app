@@ -2,10 +2,13 @@ import { readFileSync } from "fs";
 import { join } from "path";
 import { describe, expect, it } from "vitest";
 import {
+  ACCOUNT_SESSION_FIELDS,
   INTERIM_FIELDS,
   INTERIM_SLOTS,
+  INBOX_FIELDS,
   INVITE_FIELDS,
   LINE_FIELDS,
+  MEMBER_FIELDS,
   SESSION_FIELDS,
 } from "./liveSessionModel";
 
@@ -28,6 +31,9 @@ describe("firestore.rules field contract", () => {
     ["lines", LINE_FIELDS],
     ["interim", INTERIM_FIELDS],
     ["private/invites", INVITE_FIELDS],
+    ["members", MEMBER_FIELDS],
+    ["inboxes", INBOX_FIELDS],
+    ["accounts", ACCOUNT_SESSION_FIELDS],
   ])("rules accept exactly the %s fields the app writes", (_name, fields) => {
     expect(lists).toContainEqual(sorted(fields));
   });

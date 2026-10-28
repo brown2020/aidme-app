@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -12,6 +12,7 @@ import {
   subscribeToSharedSessions,
 } from "@/lib/firebase/liveSessions";
 import type { LiveSession } from "@/lib/liveSessionModel";
+import { useMemberCount } from "@/hooks/useMemberCount";
 import { formatSessionDate } from "@/lib/formatDate";
 import { LIVE_SESSION_MESSAGES } from "@/lib/constants";
 import { logger } from "@/lib/logger";
@@ -88,6 +89,7 @@ function ListStatus({ state, empty }: { state: ListState; empty: string }) {
 }
 
 function OwnedSessionRow({ session }: { session: LiveSession }) {
+  const inviteCount = useMemberCount(session.id);
   const [busy, setBusy] = useState<"stop" | "delete" | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -125,7 +127,8 @@ function OwnedSessionRow({ session }: { session: LiveSession }) {
           <StatusBadge status={session.status} />
         </div>
         <p className="text-sm text-gray-400">
-          {formatSessionDate(session.createdAt)} · {sharedWithLabel(session.viewerKeys.length)}
+          {formatSessionDate(session.createdAt)}
+          {inviteCount !== null ? ` · ${sharedWithLabel(inviteCount)}` : ""}
         </p>
       </div>
       <div className="flex shrink-0 flex-wrap gap-2">
@@ -163,8 +166,6 @@ function OwnedSessionRow({ session }: { session: LiveSession }) {
 
 const subscribeOwned: Subscribe = (uid, onChange, onError) =>
   subscribeToOwnedSessions(uid, onChange, onError);
-const subscribeShared: Subscribe = (email, onChange, onError) =>
-  subscribeToSharedSessions(email, onChange, onError);
 
 export function OwnedSessionsList({ uid }: { uid: string }) {
   const state = useSessionList(subscribeOwned, uid);
@@ -185,28 +186,40 @@ export function OwnedSessionsList({ uid }: { uid: string }) {
   );
 }
 
-export function SharedSessionsList({ email }: { email: string }) {
-  const state = useSessionList(subscribeShared, email);
+export function SharedSessionsList({ uid, email }: { uid: string; email: string }) {
+  const subscribe = useCallback<Subscribe>(
+    (key, onChange, onError) => subscribeToSharedSessions(uid, key, onChange, onError),
+    [uid]
+  );
+  const state = useSessionList(subscribe, email);
   if (state.kind !== "ready" || state.sessions.length === 0) {
     return <ListStatus state={state} empty="Nothing has been shared with you yet." />;
   }
   return (
     <ul className="flex flex-col gap-3">
       {state.sessions.map((session) => (
-        <SharedSessionRow key={session.id} session={session} email={email} />
+        <SharedSessionRow key={session.id} session={session} email={email} uid={uid} />
       ))}
     </ul>
   );
 }
 
-function SharedSessionRow({ session, email }: { session: LiveSession; email: string }) {
+function SharedSessionRow({
+  session,
+  email,
+  uid,
+}: {
+  session: LiveSession;
+  email: string;
+  uid: string;
+}) {
   const [confirming, setConfirming] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
   const leave = async () => {
     setIsLeaving(true);
     try {
-      await leaveSession(session.id, email);
+      await leaveSession(session.id, email, uid);
       toast.success(LIVE_SESSION_MESSAGES.LEFT);
     } catch (error) {
       logger.warn("Failed to leave session", error);

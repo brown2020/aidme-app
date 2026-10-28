@@ -137,7 +137,7 @@ App link files for the native shell:
 
 ## Privacy note
 
-Transcription runs in the browser via the platform speech service. Audio is never stored. Transcript text is stored in Firestore only while a signed-in user is live sharing, is readable only by that user and the verified emails they invite, and can be deleted from `/account`. Invited emails are stored owner-only; sessions keep only SHA-256 fingerprints of them. See `/privacy` in the running app.
+Transcription runs in the browser via the platform speech service. Audio is never stored. Transcript text is stored in Firestore only while a signed-in user is live sharing, is readable only by that user and the verified emails they invite, and can be deleted from `/account`. Invited emails are stored owner-only. Invitees cannot read who else was invited, and the first open binds access to that account. See `/privacy` in the running app.
 
 ## Contributing
 

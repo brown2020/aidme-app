@@ -51,9 +51,10 @@ export default function Privacy() {
         present is comfortable being transcribed.
       </p>
       <p>
-        Invited email addresses are visible only to you. Other invitees see
-        only an unreadable fingerprint of their own address, used to check
-        their access.
+        Invited email addresses are visible only to you. Invitees cannot see
+        who else was invited. Access is a private membership record. The first
+        time someone opens the session, it is bound to their account, so a
+        later owner of that mailbox does not inherit the transcript.
       </p>
       <p>
         To protect accounts and stored transcripts from automated abuse,

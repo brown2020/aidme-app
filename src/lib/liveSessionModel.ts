@@ -15,13 +15,18 @@ export const SESSION_FIELDS = [
   "title",
   "status",
   "language",
-  "viewerKeys",
   "createdAt",
   "updatedAt",
 ] as const;
 export const LINE_FIELDS = ["text", "createdAt"] as const;
 export const INTERIM_FIELDS = ["text", "seq", "updatedAt"] as const;
-export const INVITE_FIELDS = ["emails", "updatedAt"] as const;
+export const INVITE_FIELDS = ["emails", "emailKeys", "updatedAt"] as const;
+export const MEMBER_FIELDS = ["emailKey", "uid"] as const;
+export const INBOX_FIELDS = ["createdAt"] as const;
+export const ACCOUNT_SESSION_FIELDS = ["emailKey", "createdAt"] as const;
+
+/** Lowercase hex SHA-256, the id of a membership document */
+export const EMAIL_KEY_PATTERN = /^[0-9a-f]{64}$/;
 
 /** In-progress text rotates across this many documents to stay under per-document write limits */
 export const INTERIM_SLOTS = 4;
@@ -36,8 +41,6 @@ export interface LiveSession {
   title: string;
   status: LiveSessionStatus;
   language: string;
-  /** SHA-256 fingerprints of invited emails; the emails themselves are owner-only */
-  viewerKeys: string[];
   createdAt: Date | null;
   updatedAt: Date | null;
 }
@@ -57,7 +60,6 @@ export const liveSessionSchema = z.object({
   title: z.string(),
   status: z.enum(["live", "ended"]),
   language: z.string(),
-  viewerKeys: z.array(z.string()).max(MAX_SESSION_VIEWERS),
   createdAt: dateSchema,
   updatedAt: dateSchema,
 });
@@ -74,7 +76,30 @@ export const interimSchema = z.object({
 
 export const invitesSchema = z.object({
   emails: z.array(z.string()).max(MAX_SESSION_VIEWERS),
+  emailKeys: z.array(z.string()).max(MAX_SESSION_VIEWERS).optional(),
 });
+
+/**
+ * Pairs owner-only emails with the legacy session hash list.
+ * Only hashes this client can recompute from those emails are kept.
+ */
+export function pairLegacyInvites(
+  emails: string[],
+  hashed: string[],
+  legacyKeys: readonly string[]
+): { emails: string[]; emailKeys: string[] } {
+  const legacy = new Set(legacyKeys.filter((key) => EMAIL_KEY_PATTERN.test(key)));
+  const pairedEmails: string[] = [];
+  const pairedKeys: string[] = [];
+  emails.forEach((email, index) => {
+    const key = hashed[index];
+    if (key && legacy.has(key)) {
+      pairedEmails.push(email);
+      pairedKeys.push(key);
+    }
+  });
+  return { emails: pairedEmails, emailKeys: pairedKeys };
+}
 
 const emailSchema = z.email();
 

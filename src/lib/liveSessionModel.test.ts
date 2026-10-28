@@ -4,8 +4,10 @@ import {
   buildMailtoUrl,
   buildShareUrl,
   emailKey,
+  emailKeys,
   latestInterimText,
   liveSessionSchema,
+  pairLegacyInvites,
   parseViewerEmails,
   sessionIdSchema,
   toLineText,
@@ -39,15 +41,27 @@ describe("liveSessionSchema", () => {
     title: "Conversation",
     status: "live",
     language: "en-US",
-    viewerKeys: ["abc"],
     createdAt: new Date(),
     updatedAt: null,
   };
 
-  it("accepts a well-formed session and rejects unknown statuses or plain email lists", () => {
+  it("accepts a well-formed session and does not keep invite fingerprints", () => {
     expect(liveSessionSchema.safeParse(valid).success).toBe(true);
     expect(liveSessionSchema.safeParse({ ...valid, status: "paused" }).success).toBe(false);
-    expect(liveSessionSchema.safeParse({ ...valid, viewerKeys: undefined }).success).toBe(false);
+    const parsed = liveSessionSchema.safeParse({ ...valid, viewerKeys: ["abc"] });
+    expect(parsed.success).toBe(true);
+    if (parsed.success) expect(parsed.data).not.toHaveProperty("viewerKeys");
+  });
+});
+
+describe("pairLegacyInvites", () => {
+  it("keeps only emails whose hash is still on the legacy session", async () => {
+    const emails = ["a@example.com", "b@example.com"];
+    const hashed = await emailKeys(emails);
+    expect(pairLegacyInvites(emails, hashed, [hashed[1], "not-a-key"])).toEqual({
+      emails: ["b@example.com"],
+      emailKeys: [hashed[1]],
+    });
   });
 });
 

@@ -137,7 +137,7 @@ function SignedInAccount({ user }: { user: AuthUser }) {
           <h2 id="shared-heading" className="text-xl font-semibold">
             Shared with you
           </h2>
-          <SharedSessionsList email={user.email} />
+          <SharedSessionsList uid={user.uid} email={user.email} />
         </section>
       )}
 

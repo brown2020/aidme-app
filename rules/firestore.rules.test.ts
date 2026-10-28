@@ -9,9 +9,9 @@ import {
 } from "@firebase/rules-unit-testing";
 import {
   addDoc,
-  arrayRemove,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -27,6 +27,7 @@ import { afterAll, beforeAll, beforeEach, describe, it } from "vitest";
 
 const OWNER = { uid: "owner", email: "owner@example.com" };
 const VIEWER = { uid: "viewer", email: "viewer@example.com" };
+const OTHER = { uid: "other", email: "other@example.com" };
 const STRANGER = { uid: "stranger", email: "stranger@example.com" };
 const SESSION_ID = "session1234567890abcd";
 
@@ -49,25 +50,39 @@ function sessionData(overrides: Record<string, unknown> = {}) {
     title: "Conversation",
     status: "live",
     language: "en-US",
-    viewerKeys: [keyOf(VIEWER.email)],
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp(),
     ...overrides,
   };
 }
 
-async function seedSession(overrides: Record<string, unknown> = {}) {
+/** Rules-disabled seed of a session plus unclaimed membership for each email. */
+async function seedSession(options: { status?: string; emails?: string[]; legacy?: boolean; lines?: number } = {}) {
+  const emails = options.emails ?? [VIEWER.email];
+  const lineCount = options.lines ?? 1;
   await env.withSecurityRulesDisabled(async (ctx) => {
     const db = ctx.firestore() as unknown as Firestore;
-    await setDoc(doc(db, "sessions", SESSION_ID), sessionData(overrides));
+    const data = sessionData({ status: options.status ?? "live" });
+    if (options.legacy) Object.assign(data, { viewerKeys: emails.map(keyOf) });
+    await setDoc(doc(db, "sessions", SESSION_ID), data);
     await setDoc(doc(db, "sessions", SESSION_ID, "private", "invites"), {
-      emails: [VIEWER.email],
+      emails,
+      emailKeys: emails.map(keyOf),
       updatedAt: serverTimestamp(),
     });
-    await setDoc(doc(db, "sessions", SESSION_ID, "lines", "line1"), {
-      text: "Hello there.",
-      createdAt: serverTimestamp(),
-    });
+    if (!options.legacy) {
+      for (const email of emails) {
+        const key = keyOf(email);
+        await setDoc(doc(db, "sessions", SESSION_ID, "members", key), { emailKey: key, uid: "" });
+        await setDoc(doc(db, "inboxes", key, "sessions", SESSION_ID), { createdAt: serverTimestamp() });
+      }
+    }
+    for (let i = 0; i < lineCount; i++) {
+      await setDoc(doc(db, "sessions", SESSION_ID, "lines", `line${i}`), {
+        text: `Hello ${i}.`,
+        createdAt: serverTimestamp(),
+      });
+    }
   });
 }
 
@@ -87,15 +102,19 @@ beforeEach(async () => {
 });
 
 describe("session creation", () => {
-  it("lets a verified user create a session and its private invites in one batch", async () => {
+  it("lets a verified user create a session, invites, members, and inboxes in one batch", async () => {
     const db = dbFor(OWNER);
     const batch = writeBatch(db);
     const ref = doc(collection(db, "sessions"));
+    const key = keyOf(VIEWER.email);
     batch.set(ref, sessionData());
     batch.set(doc(db, "sessions", ref.id, "private", "invites"), {
       emails: [VIEWER.email],
+      emailKeys: [key],
       updatedAt: serverTimestamp(),
     });
+    batch.set(doc(db, "sessions", ref.id, "members", key), { emailKey: key, uid: "" });
+    batch.set(doc(db, "inboxes", key, "sessions", ref.id), { createdAt: serverTimestamp() });
     await assertSucceeds(batch.commit());
   });
 
@@ -114,12 +133,38 @@ describe("session creation", () => {
     );
   });
 
-  it("rejects unexpected fields, plain-email invite lists, and too many viewers", async () => {
+  it("rejects unexpected fields and invite lists that are not short emails", async () => {
     const db = dbFor(OWNER);
     await assertFails(addDoc(collection(db, "sessions"), sessionData({ isAdmin: true })));
-    await assertFails(addDoc(collection(db, "sessions"), sessionData({ viewerEmails: [VIEWER.email] })));
-    const eleven = Array.from({ length: 11 }, (_, i) => keyOf(`v${i}@example.com`));
-    await assertFails(addDoc(collection(db, "sessions"), sessionData({ viewerKeys: eleven })));
+    const key = keyOf(VIEWER.email);
+    const tooLong = `${"a".repeat(310)}@example.com`;
+    const badInvites = async (emails: string[], keys: string[]) => {
+      const batch = writeBatch(db);
+      const ref = doc(collection(db, "sessions"));
+      batch.set(ref, sessionData());
+      batch.set(doc(db, "sessions", ref.id, "private", "invites"), {
+        emails,
+        emailKeys: keys,
+        updatedAt: serverTimestamp(),
+      });
+      await assertFails(batch.commit());
+    };
+    await badInvites([VIEWER.email, "not-an-email"], [key, key]);
+    await badInvites([tooLong], [key]);
+    await badInvites(
+      Array.from({ length: 11 }, (_, i) => `v${i}@example.com`),
+      Array.from({ length: 11 }, (_, i) => keyOf(`v${i}@example.com`))
+    );
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, "sessions"));
+    batch.set(ref, sessionData());
+    batch.set(doc(db, "sessions", ref.id, "private", "invites"), {
+      emails: [VIEWER.email],
+      emailKeys: [key],
+      updatedAt: serverTimestamp(),
+    });
+    batch.set(doc(db, "sessions", ref.id, "members", "not-a-key"), { emailKey: "not-a-key", uid: "" });
+    await assertFails(batch.commit());
   });
 });
 
@@ -143,72 +188,84 @@ describe("session reads", () => {
     await assertFails(getDoc(doc(anon, "sessions", SESSION_ID)));
   });
 
-  it("keeps invited emails owner-only", async () => {
+  it("keeps invited emails and other people's fingerprints owner-only", async () => {
+    await seedSession({ emails: [VIEWER.email, OTHER.email] });
     await assertSucceeds(getDoc(doc(dbFor(OWNER), "sessions", SESSION_ID, "private", "invites")));
     await assertFails(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "private", "invites")));
-    await assertFails(
-      setDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "private", "invites"), {
-        emails: [],
-        updatedAt: serverTimestamp(),
-      })
-    );
+    await assertSucceeds(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "members", keyOf(VIEWER.email))));
+    await assertFails(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID, "members", keyOf(OTHER.email))));
+    await assertFails(getDocs(collection(dbFor(VIEWER), "sessions", SESSION_ID, "members")));
+    await assertSucceeds(getDocs(collection(dbFor(OWNER), "sessions", SESSION_ID, "members")));
+    const stored = await assertSucceeds(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID)));
+    expectNoViewerKeys(stored);
   });
 
-  it("allows the account-page list queries only for matching owner or invitee", async () => {
+  it("allows the owner to list their sessions and denies a collection scan", async () => {
     await assertSucceeds(
       getDocs(query(collection(dbFor(OWNER), "sessions"), where("ownerUid", "==", OWNER.uid)))
     );
-    await assertSucceeds(
+    await assertFails(
       getDocs(
         query(collection(dbFor(VIEWER), "sessions"), where("viewerKeys", "array-contains", keyOf(VIEWER.email)))
       )
     );
-    await assertFails(
-      getDocs(
-        query(collection(dbFor(STRANGER), "sessions"), where("viewerKeys", "array-contains", keyOf(VIEWER.email)))
-      )
-    );
     await assertFails(getDocs(collection(dbFor(STRANGER), "sessions")));
+    await assertSucceeds(getDocs(collection(dbFor(VIEWER), "inboxes", keyOf(VIEWER.email), "sessions")));
+  });
+});
+
+describe("claim and leave", () => {
+  beforeEach(() => seedSession({ emails: [VIEWER.email, OTHER.email] }));
+
+  it("binds the invite to the uid and stops a later mailbox owner from reading it", async () => {
+    const db = dbFor(VIEWER);
+    const key = keyOf(VIEWER.email);
+    const batch = writeBatch(db);
+    batch.update(doc(db, "sessions", SESSION_ID, "members", key), { uid: VIEWER.uid });
+    batch.set(doc(db, "accounts", VIEWER.uid, "sessions", SESSION_ID), {
+      emailKey: key,
+      createdAt: serverTimestamp(),
+    });
+    batch.delete(doc(db, "inboxes", key, "sessions", SESSION_ID));
+    await assertSucceeds(batch.commit());
+
+    const impostor = dbFor({ uid: "later-owner", email: VIEWER.email });
+    await assertFails(getDoc(doc(impostor, "sessions", SESSION_ID)));
+
+    const moved = dbFor({ uid: VIEWER.uid, email: "moved@example.com" });
+    await assertSucceeds(getDoc(doc(moved, "sessions", SESSION_ID)));
+    await assertFails(getDoc(doc(moved, "sessions", SESSION_ID, "members", keyOf(OTHER.email))));
+  });
+
+  it("lets the invited person delete their own unclaimed membership", async () => {
+    const db = dbFor(VIEWER);
+    const key = keyOf(VIEWER.email);
+    await assertSucceeds(deleteDoc(doc(db, "sessions", SESSION_ID, "members", key)));
+    await assertFails(getDoc(doc(db, "sessions", SESSION_ID)));
   });
 });
 
 describe("session updates and deletes", () => {
   beforeEach(() => seedSession());
 
-  it("lets the owner end the session and change invitees", async () => {
-    const ref = doc(dbFor(OWNER), "sessions", SESSION_ID);
-    await assertSucceeds(updateDoc(ref, { status: "ended", updatedAt: serverTimestamp() }));
+  it("lets the owner end the session and replace invites", async () => {
+    const db = dbFor(OWNER);
     await assertSucceeds(
-      updateDoc(ref, { viewerKeys: [keyOf("new@example.com")], updatedAt: serverTimestamp() })
+      updateDoc(doc(db, "sessions", SESSION_ID), { status: "ended", updatedAt: serverTimestamp() })
     );
-  });
-
-  it("lets a viewer remove only their own fingerprint", async () => {
-    await seedSession({ viewerKeys: [keyOf(VIEWER.email), keyOf("other@example.com")] });
-    const ref = doc(dbFor(VIEWER), "sessions", SESSION_ID);
-    await assertFails(
-      updateDoc(ref, { viewerKeys: [keyOf(VIEWER.email)], updatedAt: serverTimestamp() })
-    );
-    await assertFails(
-      updateDoc(ref, {
-        viewerKeys: [keyOf("other@example.com")],
-        status: "ended",
+    const key = keyOf("new@example.com");
+    await assertSucceeds(
+      setDoc(doc(db, "sessions", SESSION_ID, "private", "invites"), {
+        emails: ["new@example.com"],
+        emailKeys: [key],
         updatedAt: serverTimestamp(),
       })
     );
-    await assertSucceeds(
-      updateDoc(ref, { viewerKeys: arrayRemove(keyOf(VIEWER.email)), updatedAt: serverTimestamp() })
-    );
   });
 
-  it("blocks viewers from adding people or deleting", async () => {
+  it("blocks viewers from editing or deleting the session", async () => {
     const ref = doc(dbFor(VIEWER), "sessions", SESSION_ID);
-    await assertFails(
-      updateDoc(ref, {
-        viewerKeys: [keyOf(VIEWER.email), keyOf(STRANGER.email)],
-        updatedAt: serverTimestamp(),
-      })
-    );
+    await assertFails(updateDoc(ref, { title: "Hijacked", updatedAt: serverTimestamp() }));
     await assertFails(deleteDoc(ref));
   });
 
@@ -225,13 +282,26 @@ describe("session updates and deletes", () => {
     await assertSucceeds(deleteDoc(doc(dbFor(OWNER), "sessions", SESSION_ID, "private", "invites")));
     await assertSucceeds(deleteDoc(doc(dbFor(OWNER), "sessions", SESSION_ID)));
   });
+
+  it("still lets a legacy invitee read, and lets the owner remove the hash list", async () => {
+    await env.clearFirestore();
+    await seedSession({ legacy: true });
+    await assertSucceeds(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID)));
+    await assertSucceeds(
+      updateDoc(doc(dbFor(OWNER), "sessions", SESSION_ID), {
+        viewerKeys: deleteField(),
+        updatedAt: serverTimestamp(),
+      })
+    );
+    await assertFails(getDoc(doc(dbFor(VIEWER), "sessions", SESSION_ID)));
+  });
 });
 
 describe("transcript lines", () => {
   const line = () => ({ text: "How are you?", createdAt: serverTimestamp() });
 
-  it("lets the owner append lines while live, and viewers read them", async () => {
-    await seedSession();
+  it("lets the owner append lines while live, and viewers read a page of them", async () => {
+    await seedSession({ lines: 15 });
     await assertSucceeds(addDoc(collection(dbFor(OWNER), "sessions", SESSION_ID, "lines"), line()));
     await assertSucceeds(getDocs(collection(dbFor(VIEWER), "sessions", SESSION_ID, "lines")));
   });
@@ -251,9 +321,7 @@ describe("transcript lines", () => {
   it("keeps lines append-only and well-formed", async () => {
     await seedSession();
     const db = dbFor(OWNER);
-    await assertFails(
-      updateDoc(doc(db, "sessions", SESSION_ID, "lines", "line1"), { text: "Edited." })
-    );
+    await assertFails(updateDoc(doc(db, "sessions", SESSION_ID, "lines", "line0"), { text: "Edited." }));
     const lines = collection(db, "sessions", SESSION_ID, "lines");
     await assertFails(addDoc(lines, { text: "", createdAt: serverTimestamp() }));
     await assertFails(addDoc(lines, { text: "x".repeat(2001), createdAt: serverTimestamp() }));
@@ -288,8 +356,17 @@ describe("transcript lines", () => {
     await assertFails(setDoc(interim(dbFor(OWNER)), ok));
   });
 
-  it("stops viewer access once the owner removes them", async () => {
-    await seedSession({ viewerKeys: [keyOf("someone-else@example.com")] });
+  it("stops viewer access once the owner removes their membership", async () => {
+    await seedSession();
+    const db = dbFor(OWNER);
+    const key = keyOf(VIEWER.email);
+    await assertSucceeds(deleteDoc(doc(db, "sessions", SESSION_ID, "members", key)));
+    await assertSucceeds(deleteDoc(doc(db, "inboxes", key, "sessions", SESSION_ID)));
     await assertFails(getDocs(collection(dbFor(VIEWER), "sessions", SESSION_ID, "lines")));
   });
 });
+
+function expectNoViewerKeys(snap: { data: () => Record<string, unknown> | undefined }) {
+  const data = snap.data() ?? {};
+  if ("viewerKeys" in data) throw new Error("session document still exposes viewerKeys");
+}
