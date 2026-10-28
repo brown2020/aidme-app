@@ -30,15 +30,11 @@ export function AuthListener() {
   const pathname = usePathname();
   const setFirebaseUser = useAuthStore((s) => s.setFirebaseUser);
   const unsubscribeRef = useRef<(() => void) | null>(null);
-  const startedRef = useRef(false);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) return;
     const cancelAnalytics = startAnalyticsWhenIdle();
-    return () => {
-      cancelAnalytics();
-      unsubscribeRef.current?.();
-    };
+    return () => cancelAnalytics();
   }, []);
 
   useEffect(() => {
@@ -47,6 +43,8 @@ export function AuthListener() {
       return;
     }
 
+    let cancelled = false;
+    let started = false;
     let previousUid: string | null | undefined;
     const handleUser = (user: User | null) => {
       const uid = user?.uid ?? null;
@@ -59,10 +57,11 @@ export function AuthListener() {
     };
 
     const start = () => {
-      if (startedRef.current) return;
-      startedRef.current = true;
+      if (started || cancelled) return;
+      started = true;
       import("@/lib/firebase/session")
         .then(({ watchAuth }) => {
+          if (cancelled) return;
           unsubscribeRef.current = watchAuth(handleUser);
         })
         .catch((error: unknown) => {
@@ -73,7 +72,7 @@ export function AuthListener() {
 
     if (routeNeedsFirebase(pathname) || window.localStorage.getItem(SIGNED_IN_HINT_KEY)) {
       start();
-    } else if (!startedRef.current) {
+    } else if (!unsubscribeRef.current) {
       setFirebaseUser(null);
     }
 
@@ -81,7 +80,12 @@ export function AuthListener() {
       if (event.key === SIGNED_IN_HINT_KEY && event.newValue) start();
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("storage", onStorage);
+      unsubscribeRef.current?.();
+      unsubscribeRef.current = null;
+    };
   }, [pathname, setFirebaseUser]);
 
   return null;

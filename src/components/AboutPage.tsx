@@ -43,7 +43,7 @@ export default function AboutPage() {
         <li>Face-to-face mode for showing captions to someone across from you</li>
         <li>Works offline once loaded (transcription may use cloud services)</li>
         <li>No account required - completely free to use</li>
-        <li>Privacy-focused: transcripts are never stored or sent to servers</li>
+        <li>Privacy-focused: captions on this device stay in the browser</li>
       </ul>
 
       <h4>Browser Support</h4>
@@ -54,10 +54,11 @@ export default function AboutPage() {
 
       <h4>Privacy</h4>
       <p>
-        Your privacy matters. All transcription happens in real-time and is
-        never stored. When you close the app, your transcript is gone. Read our
-        full <Link href="/privacy" className="underline">Privacy Policy</Link>{" "}
-        for more details.
+        Your privacy matters. Captions on this device stay in the browser and
+        clear when you close the tab. Live sharing saves them until you delete
+        them. Read our full{" "}
+        <Link href="/privacy" className="underline">Privacy Policy</Link> for
+        more details.
       </p>
 
       <h4>Open Source</h4>
