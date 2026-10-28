@@ -32,7 +32,6 @@ const nextConfig = {
             key: "Content-Security-Policy",
             value: contentSecurityPolicy({
               emulatorHost: process.env.NEXT_PUBLIC_FIREBASE_EMULATOR_HOST || null,
-              allowEval: process.env.NODE_ENV !== "production",
             }),
           },
         ],

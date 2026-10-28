@@ -114,14 +114,14 @@ flowchart TD
 | Firebase Auth (`aidmehearing`) | Accounts; authorized domains include `aid.me`, `www.aid.me`, `localhost` |
 | Cloud Firestore (`aidmehearing`, `(default)`, Standard, `nam5`) | Live shared sessions; rules + indexes deployed via `npm run deploy:rules` |
 | Firebase Analytics | Usage analytics and operational events (`reportOperationalEvent`), loaded when the browser is idle |
-| reCAPTCHA Enterprise / App Check | Blocks scripted Firestore access; key covers aid.me, www.aid.me, localhost |
+| reCAPTCHA Enterprise / App Check | Blocks scripted Firestore access; key covers aid.me, www.aid.me, localhost. Preview builds need the same site key or Firestore enforcement rejects every read |
 | Next.js / Vercel **(inferred deploy)** | App hosting; no API routes or server actions in repo |
 | Aid Hearing iOS app | WebView + universal links |
 
 ### Architecture summary
 
 - **Client-rendered** Next.js 16 App Router app; Firebase client SDK talks directly to Auth and Firestore. The SDK is lazy-loaded: signed-out visitors on caption pages never download it (home ~236 KB gzip JS vs ~436 KB on account pages); it loads on `/sign-in`, `/account`, `/auth/*`, `/s/*`, or when this browser has signed in before (`aidme-app_signed_in` hint)
-- **App Check:** reCAPTCHA Enterprise provider (`NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`), enforced for Firestore in production
+- **App Check:** reCAPTCHA Enterprise provider (`NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`), enforced for Firestore in production. The page CSP allows `'unsafe-eval'` because that script needs it; a missing token is `PERMISSION_DENIED` on every listen, which the account page shows as a failed session list. Verification email uses a continue URL only when the host is one of the project's authorized domains; other hosts (such as a Vercel preview) get the message without one, because a rejected continue URL counts toward the send quota
 - **Authority:** `firestore.rules` is the only access boundary (owner by UID; viewers by an unclaimed inbox entry, a membership row bound to their Firebase uid, or a legacy `viewerKeys` list until the owner client migrates it; lines append-only while `status == "live"`). Emulator tests in `rules/firestore.rules.test.ts`
 - **Zustand** stores: `useAppStore` (listen + preferences), `useAuthStore` (mirrors Firebase user), `useLiveSessionStore` (active session ID in `sessionStorage`, so a reload keeps streaming in that tab only)
 - **Hook layer** separates permissions (`useMicrophonePermission`), controls (`useStartListening`), recognition (`useListening`, with an `onFinalSentence` callback), and sharing (`useLiveTranscriptSync`, `useActiveLiveSession`, `useSharedSession`)

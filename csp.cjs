@@ -1,9 +1,11 @@
 /**
  * Content-Security-Policy for the static app.
- * Next.js hydration needs inline scripts. React refresh in `next dev` needs eval.
- * Production does not. Emulator hosts are added only when the build points at them.
+ * Next.js hydration needs inline scripts. reCAPTCHA Enterprise (Firebase App
+ * Check) evaluates its script with eval; without 'unsafe-eval' the token
+ * exchange fails and Firestore rejects every read while enforcement is on.
+ * Emulator hosts are added only when the build points at them.
  *
- * @param {{ emulatorHost?: string | null, allowEval?: boolean }} options
+ * @param {{ emulatorHost?: string | null }} options
  * @returns {string}
  */
 function contentSecurityPolicy(options = {}) {
@@ -11,13 +13,13 @@ function contentSecurityPolicy(options = {}) {
   const script = [
     "'self'",
     "'unsafe-inline'",
+    "'unsafe-eval'",
     "https://www.google.com",
     "https://www.gstatic.com",
     "https://apis.google.com",
     "https://www.googletagmanager.com",
     "https://www.recaptcha.net",
   ];
-  if (options.allowEval) script.push("'unsafe-eval'");
 
   const connect = [
     "'self'",
@@ -25,6 +27,8 @@ function contentSecurityPolicy(options = {}) {
     "https://*.firebaseio.com",
     "https://*.firebaseapp.com",
     "https://www.google.com",
+    "https://www.gstatic.com",
+    "https://www.recaptcha.net",
     "https://www.google-analytics.com",
     "https://*.google-analytics.com",
     "https://*.analytics.google.com",
@@ -60,7 +64,7 @@ function contentSecurityPolicy(options = {}) {
     `connect-src ${connect.join(" ")}`,
     `frame-src ${frame.join(" ")}`,
     "font-src 'self' data:",
-    "worker-src 'self' blob:",
+    "worker-src 'self' blob: https://www.google.com https://www.gstatic.com https://www.recaptcha.net",
     "object-src 'none'",
     "base-uri 'self'",
     `form-action ${forms.join(" ")}`,

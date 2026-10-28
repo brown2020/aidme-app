@@ -123,9 +123,9 @@ Deploy as a standard Next.js app on Vercel (project `aidme-app`, Ignite team). P
 
 Production runbook:
 
-1. Set every `NEXT_PUBLIC_FIREBASE_*` variable from `.env.example` in Vercel for Production and Preview (`vercel env add <NAME> production --scope ignitechannel`), then redeploy. Without them accounts show "not available".
+1. Set every `NEXT_PUBLIC_FIREBASE_*` variable from `.env.example` in Vercel for **both** Production and Preview, then redeploy. Without them accounts show "not available". The App Check site key has to be on Preview too: Firestore enforcement rejects reads that arrive without a token, and the account page then shows "Couldn't load this transcript."
 2. After changing `firestore.rules` or `firestore.indexes.json`, run `npm run test:rules`, then `npm run deploy:rules`. Rules are not deployed by Vercel.
-3. App Check (reCAPTCHA Enterprise key in the `aidmehearing` Google Cloud project) is enforced for Firestore. A new domain must be added to that key, and to Firebase Auth's authorized domains, before sign-in works there.
+3. App Check (reCAPTCHA Enterprise key in the `aidmehearing` Google Cloud project) is enforced for Firestore. A new domain must be added to that key, and to Firebase Auth's authorized domains, before App Check and continue-URL links work there. The content security policy allows `'unsafe-eval'` because the reCAPTCHA Enterprise script requires it.
 4. Live-sharing failures are reported to Google Analytics as `live_write_failed`, `session_list_failed`, and similar events (see `reportOperationalEvent`).
 5. Rollback: promote the previous deployment in Vercel (Deployments → ⋯ → Promote to Production). Firestore rules can be rolled back from the Firebase console's Rules history. App Check enforcement can be switched back to unenforced in the Firebase console (App Check → APIs → Cloud Firestore) if tokens ever fail for real users.
 6. App Check is enforced for Firestore only. Sign-in (Identity Toolkit) is left unenforced so a low reCAPTCHA score can't lock someone out of their account; Firebase Auth's own email quotas limit link and reset abuse.

@@ -11,13 +11,31 @@ import {
   signOut,
   updateProfile,
   type ActionCodeSettings,
+  type User,
 } from "firebase/auth";
 import { getFirebaseAuth } from "./client";
+import { authorizedAuthDomains } from "./authorizedDomains";
 import { EMAIL_FOR_SIGN_IN_KEY } from "./config";
+import { sendWithOptionalContinueUrl } from "./verificationEmail";
 import { useAuthStore } from "@/zustand/useAuthStore";
 
 function actionUrl(path: string): ActionCodeSettings {
   return { url: `${window.location.origin}${path}` };
+}
+
+/**
+ * Sends the verification email. Preview hosts are not Firebase authorized
+ * domains, so a continue URL pointing at them is rejected and burns the
+ * send quota. Fall back to a message with no continue URL.
+ */
+async function sendAccountVerification(user: User): Promise<void> {
+  const domains = await authorizedAuthDomains();
+  await sendWithOptionalContinueUrl({
+    hostname: window.location.hostname,
+    domains,
+    sendWithUrl: () => sendEmailVerification(user, actionUrl("/account?verified=1")),
+    sendWithoutUrl: () => sendEmailVerification(user),
+  });
 }
 
 /** Pushes the latest profile/verification state into the store */
@@ -52,7 +70,7 @@ export async function createAccount(
   );
   const name = displayName.trim();
   if (name) await updateProfile(user, { displayName: name });
-  await sendEmailVerification(user, actionUrl("/account?verified=1"));
+  await sendAccountVerification(user);
   useAuthStore.getState().setFirebaseUser(getFirebaseAuth().currentUser);
 }
 
@@ -81,7 +99,7 @@ export async function completeEmailLinkSignIn(email: string, href: string): Prom
 export async function resendVerificationEmail(): Promise<void> {
   const user = getFirebaseAuth().currentUser;
   if (!user) return;
-  await sendEmailVerification(user, actionUrl("/account?verified=1"));
+  await sendAccountVerification(user);
 }
 
 export async function refreshEmailVerification(): Promise<boolean> {
