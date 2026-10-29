@@ -70,6 +70,8 @@ export const ERROR_MESSAGES = {
     "Error requesting microphone permission. Please check your browser settings.",
   MIC_NOT_ALLOWED:
     "Microphone access was denied. Please allow microphone access in your browser settings.",
+  MIC_UNAVAILABLE:
+    "No microphone is available. Connect a microphone and try again.",
   NETWORK_ERROR:
     "Speech recognition service unavailable. Please check your internet connection and try again.",
   LANGUAGE_NOT_SUPPORTED:

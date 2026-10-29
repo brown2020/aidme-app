@@ -20,7 +20,10 @@ export default function ListeningStatus({ isListening }: ListeningStatusProps) {
   const label = isListening ? "Listening" : "Not listening";
 
   return (
-    <div className={`flex items-center text-sm gap-1 ${colorClass}`}>
+    <div
+      role="status"
+      className={`flex items-center text-sm gap-1 ${colorClass}`}
+    >
       <Icon className={isListening ? "animate-pulse" : undefined} size={16} />
       <span>{label}</span>
     </div>

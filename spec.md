@@ -20,8 +20,8 @@ Agent instructions: see [AGENTS.md](./AGENTS.md). Human setup: see [README.md](.
 
 ### Core workflows
 
-1. **First visit:** Land on `/` → see instructions → tap mic → grant microphone → transcript view
-2. **Return visit:** Tap header mic → listen → read auto-scrolling sentences + interim line
+1. **First visit:** Land on `/` → see instructions → tap mic → see Starting, then Listening after the microphone is allowed → transcript view. If access is denied or no microphone is available, the error stays on screen (and in a toast) until a later attempt succeeds.
+2. **Return visit:** Tap header mic → see Starting / Listening (or a denial / no-microphone message) → read auto-scrolling sentences + interim line
 3. **Face-to-face:** On mobile, toggle “Face-to-face” to rotate captions for someone opposite
 4. **Settings:** Open `/settings` to choose recognition language, caption size, and review keyboard shortcut help
 5. **Help / trust:** Open `/about`, `/privacy`, `/terms` from footer
@@ -59,7 +59,7 @@ Single-page transcription experience at `/` with global header (mic, logo/about,
 | Transcript cap (200 sentences) | Shipped | `MAX_TRANSCRIPT_LENGTH` |
 | Instructions onboarding | Shipped | Shown when `!shouldListen && transcript.length === 0` |
 | Unsupported browser UI | Shipped | `BrowserNotSupportedState` |
-| Permission denied / retry | Shipped | `PermissionErrorState`, toasts from header |
+| Permission denied / no microphone | Shipped | Starting and Listening labels; denial and missing-mic errors stay on screen and toast. A granted permission query does not clear a missing-mic error. |
 | Network / service errors | Shipped | `ERROR_MESSAGES.NETWORK_ERROR` |
 | Face-to-face flip (mobile) | Shipped | Zustand `isTranscriptFlipped`, `lg:hidden` toggle |
 | Desktop auto-unflip | Shipped | `useMediaQuery` resets flip at `lg` |

@@ -4,6 +4,10 @@
  */
 
 import { logger } from "./logger";
+import {
+  classifyMicrophoneFailure,
+  type MicrophoneAccessResult,
+} from "./microphoneAccess";
 
 type SpeechRecognitionConstructor = new () => SpeechRecognition;
 
@@ -91,11 +95,6 @@ export function setIsRecognitionActive(active: boolean): void {
 }
 
 /**
- * Request microphone permission explicitly via getUserMedia
- *
- * @returns Promise resolving to true if permission granted
- */
-/**
  * Reset module state — for tests only.
  */
 export function resetSpeechRecognitionModuleState(): void {
@@ -103,10 +102,14 @@ export function resetSpeechRecognitionModuleState(): void {
   recognitionState = "idle";
 }
 
-export async function requestMicrophonePermission(): Promise<boolean> {
+/**
+ * Request microphone permission explicitly via getUserMedia.
+ * Stops the probe stream immediately; speech recognition opens the mic itself.
+ */
+export async function requestMicrophonePermission(): Promise<MicrophoneAccessResult> {
   if (typeof navigator === "undefined") {
     logger.warn("Navigator not available (SSR context)");
-    return false;
+    return { granted: false, reason: "failed" };
   }
 
   const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(
@@ -115,16 +118,17 @@ export async function requestMicrophonePermission(): Promise<boolean> {
 
   if (!getUserMedia) {
     logger.warn("getUserMedia not available in this browser");
-    return false;
+    return { granted: false, reason: "failed" };
   }
 
   try {
     const stream = await getUserMedia({ audio: true });
     stream.getTracks().forEach((track) => track.stop());
     logger.info("Microphone permission granted");
-    return true;
+    return { granted: true };
   } catch (error) {
-    logger.error("Microphone permission denied", error);
-    return false;
+    const reason = classifyMicrophoneFailure(error);
+    logger.error("Microphone request failed", { reason, error });
+    return { granted: false, reason };
   }
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import {
   MAX_TRANSCRIPT_LENGTH,
   RECOGNITION_RESTART_DELAY_MS,
@@ -11,6 +12,8 @@ import {
 } from "@/lib/speechRecognition";
 import { logger } from "@/lib/logger";
 import { handleRecognitionEnd } from "@/lib/recognitionLifecycle";
+import { useAppStore } from "@/zustand/useAppStore";
+import type { PermissionStatus } from "@/lib/validation";
 
 interface UseListeningResult {
   transcript: string[];
@@ -145,9 +148,15 @@ export default function useListening(
 
     recognition.onresult = handleResult;
 
-    const setBlockingError = (message: string) => {
+    const setBlockingError = (
+      message: string,
+      status?: PermissionStatus
+    ) => {
       permissionErrorRef.current = message;
       setPermissionError(message);
+      useAppStore.getState().setMicPermissionError(message);
+      if (status) useAppStore.getState().setMicPermissionStatus(status);
+      toast.error(message);
       stopRecognition(recognition);
     };
 
@@ -158,8 +167,14 @@ export default function useListening(
       }
 
       if (event.error === "not-allowed") {
-        setBlockingError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
+        setBlockingError(ERROR_MESSAGES.MIC_NOT_ALLOWED, "denied");
         logger.warn("Microphone permission not allowed");
+        return;
+      }
+
+      if (event.error === "audio-capture") {
+        setBlockingError(ERROR_MESSAGES.MIC_UNAVAILABLE);
+        logger.warn("No microphone available for speech recognition");
         return;
       }
 

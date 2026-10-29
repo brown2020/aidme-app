@@ -12,6 +12,7 @@ import {
   LISTENING_TIMEOUT_MS,
   MIC_TOGGLE_SHORTCUT_LABEL,
 } from "@/lib/constants";
+import { microphoneStatusLabel } from "@/lib/microphoneAccess";
 import { Button } from "./ui/Button";
 import { AccountButton } from "./auth/AccountButton";
 import logo from "../assets/aidme.png";
@@ -26,6 +27,7 @@ export default function Header() {
     isListening,
     isStarting,
     permissionStatus,
+    error,
   } = useStartListening({ navigateToHome: true });
   const router = useRouter();
   const pathname = usePathname();
@@ -62,13 +64,22 @@ export default function Header() {
 
   const getMicButtonVariant = () => {
     if (isListening) return "recording";
-    if (permissionStatus === "denied") return "danger";
+    if (permissionStatus === "denied" || error) return "danger";
     return "ghost";
   };
 
+  const statusLabel = isViewerPage
+    ? null
+    : microphoneStatusLabel({
+        isStarting,
+        isListening,
+        error,
+        permissionStatus,
+      });
+
   return (
     <header className="flex items-center justify-between bg-slate-500 h-16 shrink-0 px-5">
-      <div className="flex w-28 items-center">
+      <div className="flex min-w-0 flex-1 items-center gap-2">
         {isViewerPage ? (
           <Link
             href="/"
@@ -94,6 +105,22 @@ export default function Header() {
             <MicIcon size={24} />
           </Button>
         )}
+        {statusLabel ? (
+          <span
+            role="status"
+            className={`truncate text-sm font-semibold ${
+              isListening
+                ? "text-green-300"
+                : isStarting
+                  ? "text-white"
+                  : error || permissionStatus === "denied"
+                    ? "text-red-200"
+                    : "text-white"
+            }`}
+          >
+            {statusLabel}
+          </span>
+        ) : null}
       </div>
 
       <button
@@ -112,7 +139,7 @@ export default function Header() {
         />
       </button>
 
-      <div className="flex w-28 items-center justify-end gap-1">
+      <div className="flex min-w-0 flex-1 items-center justify-end gap-1">
         <AccountButton />
         <Button
           variant="ghost"

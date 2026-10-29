@@ -18,6 +18,8 @@ interface AppState {
   /** Shared across hooks/components — not persisted */
   micPermissionStatus: PermissionStatus;
   micPermissionError: string | null;
+  /** True while a mic start is waiting on the browser permission prompt */
+  micStarting: boolean;
 }
 
 interface AppActions {
@@ -28,6 +30,7 @@ interface AppActions {
   toggleIsTranscriptFlipped: () => void;
   setMicPermissionStatus: (status: PermissionStatus) => void;
   setMicPermissionError: (error: string | null) => void;
+  setMicStarting: (micStarting: boolean) => void;
 }
 
 type AppStore = AppState & AppActions;
@@ -45,6 +48,7 @@ export const useAppStore = create<AppStore>()(
         captionSize: DEFAULT_CAPTION_SIZE_VALIDATED,
         micPermissionStatus: "unknown",
         micPermissionError: null,
+        micStarting: false,
         setShouldListen: (shouldListen: boolean) => set({ shouldListen }),
         setIsTranscriptFlipped: (isTranscriptFlipped: boolean) =>
           set({ isTranscriptFlipped }),
@@ -59,6 +63,7 @@ export const useAppStore = create<AppStore>()(
           set({ micPermissionStatus }),
         setMicPermissionError: (micPermissionError: string | null) =>
           set({ micPermissionError }),
+        setMicStarting: (micStarting: boolean) => set({ micStarting }),
       }),
       {
         name: "aidme-app_preferences_v1",
