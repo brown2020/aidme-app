@@ -6,21 +6,8 @@ import { toast } from "sonner";
 import { useAppStore } from "@/zustand/useAppStore";
 import { useMicrophonePermission } from "./useMicrophonePermission";
 import { ERROR_MESSAGES } from "@/lib/constants";
+import { logger } from "@/lib/logger";
 import type { PermissionStatus } from "@/lib/validation";
-
-let microphoneStartCount = 0;
-
-function markMicrophoneStart(active: boolean) {
-  if (active) {
-    microphoneStartCount += 1;
-    useAppStore.getState().setMicStarting(true);
-    return;
-  }
-  microphoneStartCount = Math.max(0, microphoneStartCount - 1);
-  if (microphoneStartCount === 0) {
-    useAppStore.getState().setMicStarting(false);
-  }
-}
 
 interface UseStartListeningOptions {
   navigateToHome?: boolean;
@@ -60,7 +47,7 @@ export function useStartListening(
 
     if (useAppStore.getState().micStarting) return false;
 
-    markMicrophoneStart(true);
+    useAppStore.getState().setMicStarting(true);
     try {
       const granted = await requestPermission();
       if (!granted) {
@@ -75,9 +62,17 @@ export function useStartListening(
       if (navigateToHome) {
         router.push("/");
       }
+      // Stay on Starting until recognition fires onstart or reports a failure.
       return true;
+    } catch (error) {
+      setMicPermissionError(ERROR_MESSAGES.MIC_START_FAILED);
+      toast.error(ERROR_MESSAGES.MIC_START_FAILED);
+      logger.error("Failed to start listening", error);
+      return false;
     } finally {
-      markMicrophoneStart(false);
+      if (!useAppStore.getState().shouldListen) {
+        useAppStore.getState().setMicStarting(false);
+      }
     }
   }, [
     isSupported,

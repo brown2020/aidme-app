@@ -66,6 +66,7 @@ describe("speechRecognition module state", () => {
 
 describe("requestMicrophonePermission", () => {
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -111,5 +112,53 @@ describe("requestMicrophonePermission", () => {
       granted: false,
       reason: "denied",
     });
+  });
+
+  it("does not call getUserMedia when no audio input is listed", async () => {
+    const getUserMedia = vi.fn();
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        enumerateDevices: async () => [{ kind: "videoinput", deviceId: "cam" }],
+        getUserMedia,
+      },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: false,
+      reason: "unavailable",
+    });
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it("reports an already-denied permission without probing the device", async () => {
+    const getUserMedia = vi.fn();
+    vi.stubGlobal("navigator", {
+      permissions: { query: async () => ({ state: "denied" }) },
+      mediaDevices: { getUserMedia },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: false,
+      reason: "denied",
+    });
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it("stops waiting when getUserMedia never settles", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        enumerateDevices: async () => [{ kind: "audioinput", deviceId: "mic" }],
+        getUserMedia: () => new Promise(() => {}),
+      },
+    });
+
+    const pending = requestMicrophonePermission();
+    await vi.advanceTimersByTimeAsync(8000);
+    await expect(pending).resolves.toEqual({
+      granted: false,
+      reason: "timeout",
+    });
+    vi.useRealTimers();
   });
 });

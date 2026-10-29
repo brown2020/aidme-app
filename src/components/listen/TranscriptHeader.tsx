@@ -9,6 +9,7 @@ interface TranscriptHeaderProps {
   transcript: string[];
   interimTranscript: string;
   isListening: boolean;
+  isStarting?: boolean;
   isFlipped: boolean;
   onToggleFlip: () => void;
 }
@@ -20,6 +21,7 @@ export const TranscriptHeader = memo(function TranscriptHeader({
   transcript,
   interimTranscript,
   isListening,
+  isStarting = false,
   isFlipped,
   onToggleFlip,
 }: TranscriptHeaderProps) {
@@ -51,7 +53,7 @@ export const TranscriptHeader = memo(function TranscriptHeader({
           />
           <span>{isFlipped ? "Face-to-face: On" : "Face-to-face: Off"}</span>
         </Button>
-        <ListeningStatus isListening={isListening} />
+        <ListeningStatus isListening={isListening} isStarting={isStarting} />
       </div>
     </div>
   );

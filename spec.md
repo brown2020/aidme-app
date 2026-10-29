@@ -59,7 +59,7 @@ Single-page transcription experience at `/` with global header (mic, logo/about,
 | Transcript cap (200 sentences) | Shipped | `MAX_TRANSCRIPT_LENGTH` |
 | Instructions onboarding | Shipped | Shown when `!shouldListen && transcript.length === 0` |
 | Unsupported browser UI | Shipped | `BrowserNotSupportedState` |
-| Permission denied / no microphone | Shipped | Starting and Listening labels; denial and missing-mic errors stay on screen and toast. A granted permission query does not clear a missing-mic error. |
+| Permission denied / no microphone | Shipped | Starting clears on success or within 8s. No `audioinput` from `enumerateDevices` skips `getUserMedia` (that call can hang when no mic exists). Recognition `not-allowed`, `audio-capture`, `no-speech` before `onstart`, and `onend` before `onstart` show a denial, missing-mic, or couldn't-start message. |
 | Network / service errors | Shipped | `ERROR_MESSAGES.NETWORK_ERROR` |
 | Face-to-face flip (mobile) | Shipped | Zustand `isTranscriptFlipped`, `lg:hidden` toggle |
 | Desktop auto-unflip | Shipped | `useMediaQuery` resets flip at `lg` |

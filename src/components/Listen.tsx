@@ -83,7 +83,7 @@ function ListenSession() {
     );
   }
 
-  const showListening = (isListening || shouldListen) && !permissionError;
+  const showListening = isListening && !permissionError;
 
   return (
     <main
@@ -97,6 +97,7 @@ function ListenSession() {
         transcript={transcript}
         interimTranscript={interimTranscript}
         isListening={showListening}
+        isStarting={isStarting && shouldListen}
         isFlipped={isTranscriptFlipped}
         onToggleFlip={toggleIsTranscriptFlipped}
       />

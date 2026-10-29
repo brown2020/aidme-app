@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { ERROR_MESSAGES } from "./constants";
 import {
+  audioInputPresence,
   classifyMicrophoneFailure,
   errorAfterPermissionQuery,
   microphoneFailureMessage,
   microphoneStatusLabel,
+  recognitionStartupFailure,
 } from "./microphoneAccess";
 
 describe("classifyMicrophoneFailure", () => {
@@ -39,6 +41,67 @@ describe("classifyMicrophoneFailure", () => {
     expect(classifyMicrophoneFailure(new Error("nope"))).toBe("failed");
     expect(classifyMicrophoneFailure("nope")).toBe("failed");
   });
+
+  it("treats a start deadline as a timeout", () => {
+    const error = new Error("Microphone start timed out");
+    error.name = "MicrophoneStartTimeoutError";
+    expect(classifyMicrophoneFailure(error)).toBe("timeout");
+  });
+});
+
+describe("audioInputPresence", () => {
+  it("is absent only when the list contains no audio input", () => {
+    expect(audioInputPresence([])).toBe("absent");
+    expect(audioInputPresence([{ kind: "videoinput" }])).toBe("absent");
+    expect(audioInputPresence([{ kind: "audioinput" }])).toBe("present");
+    expect(audioInputPresence(null)).toBe("unknown");
+  });
+});
+
+describe("recognitionStartupFailure", () => {
+  it("maps not-allowed, audio-capture, and no-speech before start", () => {
+    expect(
+      recognitionStartupFailure({
+        type: "error",
+        code: "not-allowed",
+        hasStarted: false,
+      })
+    ).toBe("denied");
+    expect(
+      recognitionStartupFailure({
+        type: "error",
+        code: "audio-capture",
+        hasStarted: true,
+      })
+    ).toBe("unavailable");
+    expect(
+      recognitionStartupFailure({
+        type: "error",
+        code: "no-speech",
+        hasStarted: false,
+      })
+    ).toBe("unavailable");
+  });
+
+  it("lets silence after a real start restart instead of failing", () => {
+    expect(
+      recognitionStartupFailure({
+        type: "error",
+        code: "no-speech",
+        hasStarted: true,
+      })
+    ).toBeNull();
+  });
+
+  it("treats onend and a deadline before onstart as a failed start", () => {
+    expect(
+      recognitionStartupFailure({ type: "end", hasStarted: false })
+    ).toBe("timeout");
+    expect(
+      recognitionStartupFailure({ type: "timeout", hasStarted: false })
+    ).toBe("timeout");
+    expect(recognitionStartupFailure({ type: "end", hasStarted: true })).toBeNull();
+  });
 });
 
 describe("microphoneFailureMessage", () => {
@@ -46,6 +109,9 @@ describe("microphoneFailureMessage", () => {
     expect(microphoneFailureMessage("denied")).toBe(ERROR_MESSAGES.MIC_NOT_ALLOWED);
     expect(microphoneFailureMessage("unavailable")).toBe(
       ERROR_MESSAGES.MIC_UNAVAILABLE
+    );
+    expect(microphoneFailureMessage("timeout")).toBe(
+      ERROR_MESSAGES.MIC_START_FAILED
     );
     expect(microphoneFailureMessage("failed")).toBe(
       ERROR_MESSAGES.MIC_PERMISSION_ERROR
