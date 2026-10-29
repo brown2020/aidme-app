@@ -76,11 +76,6 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
       return false;
     }
 
-    if (status === "denied") {
-      setError(ERROR_MESSAGES.MIC_DENIED);
-      return false;
-    }
-
     const granted = await requestMicrophonePermission();
 
     if (granted) {
@@ -89,9 +84,10 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
       return true;
     }
 
+    setStatus("denied");
     setError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
     return false;
-  }, [status, setStatus, setError]);
+  }, [setStatus, setError]);
 
   return {
     status,

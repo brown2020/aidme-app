@@ -27,7 +27,11 @@ export function useSharedSession(sessionId: string): SharedSessionState {
       setFailure(error.code === "permission-denied" ? "noAccess" : "failed");
     };
     const unsubscribers = [
-      subscribeToSession(sessionId, setSession, fail),
+      subscribeToSession(sessionId, (watched) => {
+        if (!watched.exists) setSession(null);
+        else if (!watched.session) setFailure("failed");
+        else setSession(watched.session);
+      }, fail),
       subscribeToLines(sessionId, setLines, fail),
       subscribeToInterim(sessionId, setInterim, fail),
     ];

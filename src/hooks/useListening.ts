@@ -10,6 +10,7 @@ import {
   setIsRecognitionActive,
 } from "@/lib/speechRecognition";
 import { logger } from "@/lib/logger";
+import { handleRecognitionEnd } from "@/lib/recognitionLifecycle";
 
 interface UseListeningResult {
   transcript: string[];
@@ -190,21 +191,26 @@ export default function useListening(
     };
 
     recognition.onend = () => {
-      setIsRecognitionActive(false);
-      setIsListening(false);
+      handleRecognitionEnd(
+        isCurrentRecognitionEffect(),
+        canRestartListening(),
+        () => {
+          setIsRecognitionActive(false);
+          setIsListening(false);
+        },
+        () => {
+          if (restartTimeoutRef.current !== null) {
+            clearTimeout(restartTimeoutRef.current);
+          }
 
-      if (!isCurrentRecognitionEffect() || !canRestartListening()) return;
-
-      if (restartTimeoutRef.current !== null) {
-        clearTimeout(restartTimeoutRef.current);
-      }
-
-      restartTimeoutRef.current = window.setTimeout(() => {
-        restartTimeoutRef.current = null;
-        if (isCurrentRecognitionEffect() && canRestartListening()) {
-          startRecognition(recognition);
+          restartTimeoutRef.current = window.setTimeout(() => {
+            restartTimeoutRef.current = null;
+            if (isCurrentRecognitionEffect() && canRestartListening()) {
+              startRecognition(recognition);
+            }
+          }, RECOGNITION_RESTART_DELAY_MS);
         }
-      }, RECOGNITION_RESTART_DELAY_MS);
+      );
     };
 
     if (shouldListen) {

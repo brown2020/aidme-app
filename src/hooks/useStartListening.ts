@@ -67,7 +67,7 @@ export function useStartListening(
         }
       } else {
         const started = await startListening();
-        if (!started && status === "denied") {
+        if (!started && useAppStore.getState().micPermissionStatus === "denied") {
           toast.error(ERROR_MESSAGES.MIC_NOT_ALLOWED, {
             description:
               "Please check your browser settings to allow microphone access.",
@@ -83,7 +83,6 @@ export function useStartListening(
     shouldListen,
     stopListening,
     startListening,
-    status,
     navigateToHome,
     router,
   ]);

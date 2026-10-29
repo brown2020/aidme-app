@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { allowedProfilePhotoUrl } from "@/lib/profilePhoto";
 import type { AuthUser } from "@/zustand/useAuthStore";
 
 function initials(user: AuthUser): string {
@@ -12,10 +13,11 @@ function initials(user: AuthUser): string {
 
 /** Google profile photo when available, otherwise initials */
 export function UserAvatar({ user, size = 32 }: { user: AuthUser; size?: number }) {
-  if (user.photoURL) {
+  const photoURL = allowedProfilePhotoUrl(user.photoURL);
+  if (photoURL) {
     return (
       <Image
-        src={user.photoURL}
+        src={photoURL}
         alt=""
         width={size}
         height={size}

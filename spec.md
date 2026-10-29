@@ -114,15 +114,15 @@ flowchart TD
 | Firebase Auth (`aidmehearing`) | Accounts; authorized domains include `aid.me`, `www.aid.me`, `localhost` |
 | Cloud Firestore (`aidmehearing`, `(default)`, Standard, `nam5`) | Live shared sessions; rules + indexes deployed via `npm run deploy:rules` |
 | Firebase Analytics | Usage analytics and operational events (`reportOperationalEvent`), loaded when the browser is idle |
-| reCAPTCHA Enterprise / App Check | Blocks scripted Firestore access; key covers aid.me, www.aid.me, localhost |
+| reCAPTCHA Enterprise / App Check | Blocks scripted Firestore access; key covers aid.me, www.aid.me, localhost. Preview builds need the same site key or Firestore enforcement rejects every read |
 | Next.js / Vercel **(inferred deploy)** | App hosting; no API routes or server actions in repo |
 | Aid Hearing iOS app | WebView + universal links |
 
 ### Architecture summary
 
 - **Client-rendered** Next.js 16 App Router app; Firebase client SDK talks directly to Auth and Firestore. The SDK is lazy-loaded: signed-out visitors on caption pages never download it (home ~236 KB gzip JS vs ~436 KB on account pages); it loads on `/sign-in`, `/account`, `/auth/*`, `/s/*`, or when this browser has signed in before (`aidme-app_signed_in` hint)
-- **App Check:** reCAPTCHA Enterprise provider (`NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`), enforced for Firestore in production
-- **Authority:** `firestore.rules` is the only access boundary (owner by UID; viewers by the SHA-256 fingerprint of their verified, lowercased email in `viewerKeys`; lines append-only while `status == "live"`). Emulator tests in `rules/firestore.rules.test.ts`
+- **App Check:** reCAPTCHA Enterprise provider (`NEXT_PUBLIC_FIREBASE_APPCHECK_SITE_KEY`), enforced for Firestore in production. The page CSP allows `'unsafe-eval'` because that script needs it; a missing token is `PERMISSION_DENIED` on every listen, which the account page shows as a failed session list. Verification email uses a continue URL only when the host is one of the project's authorized domains; other hosts (such as a Vercel preview) get the message without one, because a rejected continue URL counts toward the send quota
+- **Authority:** `firestore.rules` is the only access boundary (owner by UID; viewers by an unclaimed inbox entry, a membership row bound to their Firebase uid, or a legacy `viewerKeys` list until the owner client migrates it; lines append-only while `status == "live"`). Emulator tests in `rules/firestore.rules.test.ts`
 - **Zustand** stores: `useAppStore` (listen + preferences), `useAuthStore` (mirrors Firebase user), `useLiveSessionStore` (active session ID in `sessionStorage`, so a reload keeps streaming in that tab only)
 - **Hook layer** separates permissions (`useMicrophonePermission`), controls (`useStartListening`), recognition (`useListening`, with an `onFinalSentence` callback), and sharing (`useLiveTranscriptSync`, `useActiveLiveSession`, `useSharedSession`)
 - **No** API routes, Server Actions, server session cookies, auth middleware, or background jobs. No server renders private data, so there is nothing for a session cookie to protect
@@ -131,12 +131,15 @@ flowchart TD
 
 | Path | Fields | Who |
 |------|--------|-----|
-| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `viewerKeys` (≤10 SHA-256 hex fingerprints of invited emails), `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read; a viewer may only remove their own fingerprint |
-| `sessions/{sessionId}/private/invites` | `emails` (≤10, lowercase), `updatedAt` | Owner only (written in the same batch as the session) |
+| `sessions/{sessionId}` | `ownerUid`, `ownerName`, `ownerEmail`, `title`, `status` (`live`/`ended`), `language`, `createdAt`, `updatedAt` | Owner creates (verified email) / updates / deletes; owner + invited verified viewers read. No invite list. Legacy docs may still have `viewerKeys` until the owner client deletes that field |
+| `sessions/{sessionId}/private/invites` | `emails` (≤10), `emailKeys` (matching 64-char hex hashes), `updatedAt` | Owner only (written in the same batch as the session) |
+| `sessions/{sessionId}/members/{emailKey}` | `emailKey`, `uid` (`""` until claimed, then the Firebase uid) | Owner creates and lists; the invited person reads their own row, claims it once, or deletes it |
+| `inboxes/{emailKey}/sessions/{sessionId}` | `createdAt` | Unclaimed invite. Readable only by that verified email. Deleted on claim or revoke |
+| `accounts/{uid}/sessions/{sessionId}` | `emailKey`, `createdAt` | Written when the invite is claimed so access survives an email change. Readable only by that uid |
 | `sessions/{sessionId}/lines/{lineId}` | `text` (1–2000 chars), `createdAt` (server time) | Owner appends while live and deletes; owner + viewers read; no edits |
 | `sessions/{sessionId}/interim/{0-3}` | `text` (≤2000 chars, words still being spoken), `seq` (increasing int), `updatedAt` | Owner writes while live, rotating slots so each document gets ≤1 write/s; viewers show the highest `seq`; a line append clears it in the same batch |
 
-Composite indexes: `ownerUid ASC, createdAt DESC` and `viewerKeys CONTAINS, createdAt DESC` (`firestore.indexes.json`).
+Composite index: `ownerUid ASC, createdAt DESC` (`firestore.indexes.json`). The old `viewerKeys CONTAINS, createdAt DESC` index is removed. Inbox and account listings use the single-field `createdAt` index.
 
 ### Technical constraints
 

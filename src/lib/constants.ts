@@ -160,7 +160,7 @@ export const COMPANY_INFO = {
   address: "30765 Pacific Coast Hwy, Suite 354",
   location: "Malibu, CA",
   termsUpdatedAt: "October 22, 2026",
-  privacyUpdatedAt: "October 22, 2026",
+  privacyUpdatedAt: "October 28, 2026",
 } as const;
 
 /** Navigation links */

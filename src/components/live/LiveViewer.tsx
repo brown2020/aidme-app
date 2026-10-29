@@ -4,9 +4,10 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Loader2, Play, Square } from "lucide-react";
 import { isFirebaseConfigured } from "@/lib/firebase/config";
-import { leaveSession } from "@/lib/firebase/liveSessions";
+import { claimSessionAccess, leaveSession } from "@/lib/firebase/liveSessions";
 import { normalizeEmail, type LiveSession, type TranscriptLine } from "@/lib/liveSessionModel";
 import { logger } from "@/lib/logger";
+import { reportOperationalEvent } from "@/lib/monitoring";
 import { getCaptionTextClassName } from "@/lib/captionSize";
 import { AUTH_ERROR_MESSAGES, LIVE_SESSION_MESSAGES } from "@/lib/constants";
 import { useAppStore } from "@/zustand/useAppStore";
@@ -52,7 +53,7 @@ export default function LiveViewer({ sessionId }: LiveViewerProps) {
     );
   }
   // A different account must start from a fresh subscription.
-  return <SharedSessionView key={user.uid} sessionId={sessionId} email={user.email} />;
+  return <SharedSessionView key={user.uid} sessionId={sessionId} email={user.email} uid={user.uid} />;
 }
 
 /** Who the viewer stopped listening to, kept so the paused screen can name them */
@@ -61,7 +62,15 @@ interface StoppedSession {
   isOwner: boolean;
 }
 
-function SharedSessionView({ sessionId, email }: { sessionId: string; email: string | null }) {
+function SharedSessionView({
+  sessionId,
+  email,
+  uid,
+}: {
+  sessionId: string;
+  email: string | null;
+  uid: string;
+}) {
   const [stopped, setStopped] = useState<StoppedSession | null>(null);
   // While stopped, the subscribing component is unmounted, so nothing streams in.
   if (stopped) {
@@ -69,24 +78,33 @@ function SharedSessionView({ sessionId, email }: { sessionId: string; email: str
       <ViewerStopped
         sessionId={sessionId}
         email={email}
+        uid={uid}
         stopped={stopped}
         onResume={() => setStopped(null)}
       />
     );
   }
-  return <ListeningView sessionId={sessionId} email={email} onStop={setStopped} />;
+  return <ListeningView sessionId={sessionId} email={email} uid={uid} onStop={setStopped} />;
 }
 
 function ListeningView({
   sessionId,
   email,
+  uid,
   onStop,
 }: {
   sessionId: string;
   email: string | null;
+  uid: string;
   onStop: (stopped: StoppedSession) => void;
 }) {
   const state = useSharedSession(sessionId);
+  useEffect(() => {
+    if (state.kind !== "ready" || !email) return;
+    void claimSessionAccess(sessionId, uid, email).catch((error: unknown) =>
+      reportOperationalEvent("session_claim_failed", error)
+    );
+  }, [email, sessionId, state.kind, uid]);
   if (state.kind === "loading") return <ViewerLoading />;
   if (state.kind === "ready") {
     const { session } = state;
@@ -106,11 +124,13 @@ function ListeningView({
 function ViewerStopped({
   sessionId,
   email,
+  uid,
   stopped,
   onResume,
 }: {
   sessionId: string;
   email: string | null;
+  uid: string;
   stopped: StoppedSession;
   onResume: () => void;
 }) {
@@ -120,7 +140,7 @@ function ViewerStopped({
     if (!email) return;
     setLeaveState("leaving");
     try {
-      await leaveSession(sessionId, email);
+      await leaveSession(sessionId, email, uid);
       setLeaveState("left");
     } catch (error) {
       logger.warn("Failed to leave session", error);

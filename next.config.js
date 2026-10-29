@@ -1,3 +1,7 @@
+// CommonJS so the same policy can be required from this config and from unit tests.
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { contentSecurityPolicy } = require("./csp.cjs");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
@@ -5,7 +9,12 @@ const nextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
   images: {
     formats: ["image/avif", "image/webp"],
-    remotePatterns: [{ protocol: "https", hostname: "lh3.googleusercontent.com" }],
+    remotePatterns: [
+      "lh3.googleusercontent.com",
+      "lh4.googleusercontent.com",
+      "lh5.googleusercontent.com",
+      "lh6.googleusercontent.com",
+    ].map((hostname) => ({ protocol: "https", hostname })),
   },
   async headers() {
     return [
@@ -18,6 +27,12 @@ const nextConfig = {
           {
             key: "Permissions-Policy",
             value: "microphone=(self), camera=()",
+          },
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy({
+              emulatorHost: process.env.NEXT_PUBLIC_FIREBASE_EMULATOR_HOST || null,
+            }),
           },
         ],
       },

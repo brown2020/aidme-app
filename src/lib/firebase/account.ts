@@ -43,16 +43,20 @@ async function deleteOwnedSessions(uid: string): Promise<void> {
   }
 }
 
-/** Removes this user's invite fingerprint from sessions other people shared with them */
-async function leaveSharedSessions(email: string): Promise<void> {
+/** Removes this account from sessions other people shared with them, one page at a time */
+async function leaveSharedSessions(uid: string, email: string): Promise<void> {
   const db = getDb();
   const key = await emailKey(email);
-  for (;;) {
-    const page = await getDocs(
-      query(collection(db, "sessions"), where("viewerKeys", "array-contains", key), limit(PAGE_SIZE))
-    );
-    if (page.empty) return;
-    await Promise.all(page.docs.map((session) => leaveSession(session.id, email)));
+  const sources = [
+    collection(db, "accounts", uid, "sessions"),
+    collection(db, "inboxes", key, "sessions"),
+  ];
+  for (const source of sources) {
+    for (;;) {
+      const page = await getDocs(query(source, limit(PAGE_SIZE)));
+      if (page.empty) break;
+      await Promise.all(page.docs.map((session) => leaveSession(session.id, email, uid)));
+    }
   }
 }
 
@@ -72,7 +76,7 @@ export async function deleteAccountAndData(): Promise<void> {
   const user = getFirebaseAuth().currentUser;
   if (!user) return;
   await deleteOwnedSessions(user.uid);
-  if (user.email && user.emailVerified) await leaveSharedSessions(user.email);
+  if (user.email && user.emailVerified) await leaveSharedSessions(user.uid, user.email);
   try {
     await deleteUser(user);
   } catch (error) {

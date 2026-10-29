@@ -37,6 +37,7 @@ export default function SignInPage() {
   const initialMode: AuthMode = searchParams.get("mode") === "signup" ? "signUp" : "signIn";
   const status = useAuthStore((s) => s.status);
   const email = useAuthStore((s) => s.user?.email ?? null);
+  const [accountError, setAccountError] = useState<string | null>(null);
 
   if (!isFirebaseConfigured()) {
     return (
@@ -49,9 +50,9 @@ export default function SignInPage() {
   return (
     <div className="mx-auto flex w-full max-w-md flex-col gap-6 text-white">
       {status === "signedIn" ? (
-        <AlreadySignedIn email={email} redirect={redirect} />
+        <AlreadySignedIn email={email} redirect={redirect} error={accountError} />
       ) : (
-        <AuthForm initialMode={initialMode} redirect={redirect} />
+        <AuthForm initialMode={initialMode} redirect={redirect} onAccountError={setAccountError} />
       )}
       <p className="text-sm text-gray-400">
         You don&apos;t need an account for captions on this device.{" "}
@@ -64,11 +65,20 @@ export default function SignInPage() {
   );
 }
 
-function AlreadySignedIn({ email, redirect }: { email: string | null; redirect: string }) {
+function AlreadySignedIn({
+  email,
+  redirect,
+  error,
+}: {
+  email: string | null;
+  redirect: string;
+  error: string | null;
+}) {
   return (
     <div className="flex flex-col gap-4">
       <h1 className="text-2xl font-semibold">You&apos;re signed in</h1>
       <p className="text-gray-300">Signed in as {email}.</p>
+      {error && <FormMessage tone="error">{error}</FormMessage>}
       <Link
         href={redirect}
         className="inline-flex items-center justify-center rounded-md bg-blue-600 px-6 py-3 text-lg font-medium hover:bg-blue-700"
@@ -79,7 +89,15 @@ function AlreadySignedIn({ email, redirect }: { email: string | null; redirect: 
   );
 }
 
-function AuthForm({ initialMode, redirect }: { initialMode: AuthMode; redirect: string }) {
+function AuthForm({
+  initialMode,
+  redirect,
+  onAccountError,
+}: {
+  initialMode: AuthMode;
+  redirect: string;
+  onAccountError: (message: string) => void;
+}) {
   const router = useRouter();
   const [mode, setMode] = useState<AuthMode>(initialMode);
   const [fields, setFields] = useState<AuthFields>(EMPTY_FIELDS);
@@ -112,7 +130,11 @@ function AuthForm({ initialMode, redirect }: { initialMode: AuthMode; redirect: 
       if (mode === "signUp") toast.success("Account created. Check your email to verify your address.");
       router.replace(redirect);
     } catch (caught) {
-      setError(getAuthErrorMessage(caught));
+      const message = getAuthErrorMessage(caught);
+      // Creating the account signs the user in before the verification email
+      // is sent, which replaces this form. Keep that failure visible.
+      if (message && useAuthStore.getState().status === "signedIn") onAccountError(message);
+      else setError(message);
     } finally {
       setIsSubmitting(false);
     }
