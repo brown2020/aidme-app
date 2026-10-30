@@ -26,7 +26,7 @@ function ListenSession() {
     toggleIsTranscriptFlipped,
     setIsTranscriptFlipped,
   } = useAppStore();
-  const { startListening } = useStartListening();
+  const { startListening, isStarting } = useStartListening();
   const liveSync = useLiveTranscriptSync(shouldListen);
   const {
     transcript,
@@ -77,10 +77,13 @@ function ListenSession() {
     return (
       <PermissionErrorState
         error={permissionError}
+        isStarting={isStarting}
         onRequestPermission={handleRequestPermission}
       />
     );
   }
+
+  const showListening = isListening && !permissionError;
 
   return (
     <main
@@ -93,7 +96,8 @@ function ListenSession() {
       <TranscriptHeader
         transcript={transcript}
         interimTranscript={interimTranscript}
-        isListening={isListening}
+        isListening={showListening}
+        isStarting={isStarting && shouldListen}
         isFlipped={isTranscriptFlipped}
         onToggleFlip={toggleIsTranscriptFlipped}
       />
@@ -101,7 +105,7 @@ function ListenSession() {
       <TranscriptDisplay
         transcript={transcript}
         interimTranscript={interimTranscript}
-        isListening={isListening}
+        isListening={showListening}
         isFlipped={isTranscriptFlipped}
         captionSize={captionSize}
         transcriptEndRef={transcriptEndRef}

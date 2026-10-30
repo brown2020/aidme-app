@@ -3,6 +3,7 @@ import {
   getIsRecognitionActive,
   getSpeechRecognitionInstance,
   isSpeechRecognitionSupported,
+  requestMicrophonePermission,
   resetSpeechRecognitionModuleState,
   setIsRecognitionActive,
 } from "./speechRecognition";
@@ -60,5 +61,104 @@ describe("speechRecognition module state", () => {
     expect(second).not.toBeNull();
     expect(second?.lang).toBe("es-ES");
     expect(instances.length).toBe(2);
+  });
+});
+
+describe("requestMicrophonePermission", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  it("resolves granted and stops the probe stream", async () => {
+    const stop = vi.fn();
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: async () => ({ getTracks: () => [{ stop }] }),
+      },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: true,
+    });
+    expect(stop).toHaveBeenCalledOnce();
+  });
+
+  it("reports a missing microphone separately from a denial", async () => {
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: async () => {
+          throw new DOMException("Requested device not found", "NotFoundError");
+        },
+      },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: false,
+      reason: "unavailable",
+    });
+  });
+
+  it("reports a permission rejection as denied", async () => {
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        getUserMedia: async () => {
+          throw new DOMException("Permission denied", "NotAllowedError");
+        },
+      },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: false,
+      reason: "denied",
+    });
+  });
+
+  it("does not call getUserMedia when no audio input is listed", async () => {
+    const getUserMedia = vi.fn();
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        enumerateDevices: async () => [{ kind: "videoinput", deviceId: "cam" }],
+        getUserMedia,
+      },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: false,
+      reason: "unavailable",
+    });
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it("reports an already-denied permission without probing the device", async () => {
+    const getUserMedia = vi.fn();
+    vi.stubGlobal("navigator", {
+      permissions: { query: async () => ({ state: "denied" }) },
+      mediaDevices: { getUserMedia },
+    });
+
+    await expect(requestMicrophonePermission()).resolves.toEqual({
+      granted: false,
+      reason: "denied",
+    });
+    expect(getUserMedia).not.toHaveBeenCalled();
+  });
+
+  it("stops waiting when getUserMedia never settles", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal("navigator", {
+      mediaDevices: {
+        enumerateDevices: async () => [{ kind: "audioinput", deviceId: "mic" }],
+        getUserMedia: () => new Promise(() => {}),
+      },
+    });
+
+    const pending = requestMicrophonePermission();
+    await vi.advanceTimersByTimeAsync(8000);
+    await expect(pending).resolves.toEqual({
+      granted: false,
+      reason: "timeout",
+    });
+    vi.useRealTimers();
   });
 });

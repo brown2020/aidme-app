@@ -6,16 +6,21 @@ import Alert from "./Alert";
 import { Button } from "./ui/Button";
 import Link from "next/link";
 import { LiveShareButton } from "./live/LiveShareButton";
+import { ERROR_MESSAGES } from "@/lib/constants";
+import { isMicrophoneDenialMessage } from "@/lib/microphoneAccess";
 
 /**
  * Instructions page component
  * Shows how to use the app and handles initial permission request
  */
 export default function Instructions() {
-  const { startListening, isSupported, permissionStatus, error } =
+  const { startListening, isSupported, permissionStatus, error, isStarting } =
     useStartListening({ navigateToHome: true });
 
-  const isDisabled = isSupported !== true;
+  const isDisabled = isSupported !== true || isStarting;
+  const visibleError =
+    error ??
+    (permissionStatus === "denied" ? ERROR_MESSAGES.MIC_DENIED : null);
 
   return (
     <main className="flex flex-col items-center justify-center mx-auto w-full h-full space-y-7 text-3xl text-white bg-black font-semibold p-5 tracking-tight max-w-lg overflow-y-auto">
@@ -42,16 +47,13 @@ export default function Instructions() {
         </Alert>
       )}
 
-      {permissionStatus === "denied" && (
-        <Alert variant="error">
-          Microphone access is blocked. Please allow microphone access in your
-          browser settings.
-        </Alert>
+      {isStarting && (
+        <p role="status" className="text-lg text-green-400">
+          Starting…
+        </p>
       )}
 
-      {error && permissionStatus !== "denied" && (
-        <Alert variant="error">{error}</Alert>
-      )}
+      {visibleError && <Alert variant="error">{visibleError}</Alert>}
 
       <Button
         variant="secondary"
@@ -59,6 +61,7 @@ export default function Instructions() {
         className="mx-auto px-6 py-6"
         onClick={startListening}
         disabled={isDisabled}
+        aria-busy={isStarting}
         aria-label="Start listening"
       >
         <Mic size={60} />
@@ -68,7 +71,7 @@ export default function Instructions() {
         <LiveShareButton />
       </div>
 
-      {permissionStatus === "denied" && (
+      {isMicrophoneDenialMessage(visibleError) && (
         <p className="text-sm text-gray-400 mt-4">
           You&apos;ll need to reset microphone permissions in your browser
           settings to use Aid.me

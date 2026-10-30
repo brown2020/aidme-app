@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import {
   MAX_TRANSCRIPT_LENGTH,
+  MIC_START_TIMEOUT_MS,
   RECOGNITION_RESTART_DELAY_MS,
   ERROR_MESSAGES,
 } from "@/lib/constants";
@@ -11,6 +13,13 @@ import {
 } from "@/lib/speechRecognition";
 import { logger } from "@/lib/logger";
 import { handleRecognitionEnd } from "@/lib/recognitionLifecycle";
+import {
+  microphoneFailureMessage,
+  recognitionStartupFailure,
+  type MicrophoneFailureReason,
+} from "@/lib/microphoneAccess";
+import { useAppStore } from "@/zustand/useAppStore";
+import type { PermissionStatus } from "@/lib/validation";
 
 interface UseListeningResult {
   transcript: string[];
@@ -99,18 +108,6 @@ export default function useListening(
     if (interim) onInterimRef.current?.(interim);
   }, []);
 
-  const startRecognition = useCallback((recognition: SpeechRecognition) => {
-    if (getIsRecognitionActive()) return;
-    try {
-      recognition.start();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes("already started")) {
-        logger.error("Failed to start recognition", error);
-      }
-    }
-  }, []);
-
   const stopRecognition = useCallback((recognition: SpeechRecognition) => {
     if (!getIsRecognitionActive()) return;
     try {
@@ -134,7 +131,17 @@ export default function useListening(
     if (typeof window === "undefined" || permissionError) return;
 
     const recognition = getSpeechRecognitionInstance(language);
-    if (!recognition) return;
+    if (!recognition) {
+      if (shouldListen) {
+        useAppStore.getState().setMicStarting(false);
+        useAppStore.getState().setMicPermissionError(
+          ERROR_MESSAGES.BROWSER_NOT_SUPPORTED
+        );
+        useAppStore.getState().setShouldListen(false);
+        toast.error(ERROR_MESSAGES.BROWSER_NOT_SUPPORTED);
+      }
+      return;
+    }
 
     const effectId = recognitionEffectIdRef.current + 1;
     recognitionEffectIdRef.current = effectId;
@@ -145,21 +152,113 @@ export default function useListening(
 
     recognition.onresult = handleResult;
 
-    const setBlockingError = (message: string) => {
+    let attempt = 0;
+    let startedAttempt = -1;
+    let settled = false;
+    let armed = false;
+    let startTimer: number | null = null;
+
+    const clearStartTimer = () => {
+      if (startTimer !== null) {
+        clearTimeout(startTimer);
+        startTimer = null;
+      }
+    };
+
+    const leaveStarting = () => {
+      useAppStore.getState().setMicStarting(false);
+    };
+
+    const failStartup = (
+      reason: MicrophoneFailureReason,
+      status?: PermissionStatus
+    ) => {
+      if (settled || !isCurrentRecognitionEffect()) return;
+      settled = true;
+      clearStartTimer();
+      const message = microphoneFailureMessage(reason);
       permissionErrorRef.current = message;
       setPermissionError(message);
+      useAppStore.getState().setMicPermissionError(message);
+      if (status) useAppStore.getState().setMicPermissionStatus(status);
+      leaveStarting();
+      toast.error(message);
+      try {
+        recognition.abort();
+      } catch {
+        // Some engines only implement stop().
+      }
+      try {
+        recognition.stop();
+      } catch {
+        // Ignore stop errors while tearing down a start that never began.
+      }
+      setIsRecognitionActive(false);
+      setIsListening(false);
+      useAppStore.getState().setShouldListen(false);
+    };
+
+    const setBlockingError = (
+      message: string,
+      status?: PermissionStatus
+    ) => {
+      if (settled || !isCurrentRecognitionEffect()) return;
+      settled = true;
+      clearStartTimer();
+      permissionErrorRef.current = message;
+      setPermissionError(message);
+      useAppStore.getState().setMicPermissionError(message);
+      if (status) useAppStore.getState().setMicPermissionStatus(status);
+      leaveStarting();
+      toast.error(message);
       stopRecognition(recognition);
+      setIsListening(false);
+    };
+
+    const beginRecognition = () => {
+      if (settled || getIsRecognitionActive() || !isCurrentRecognitionEffect()) {
+        return;
+      }
+      armed = true;
+      const id = ++attempt;
+      clearStartTimer();
+      startTimer = window.setTimeout(() => {
+        startTimer = null;
+        if (startedAttempt === id) return;
+        const reason = recognitionStartupFailure({
+          type: "timeout",
+          hasStarted: false,
+        });
+        if (reason) failStartup(reason);
+      }, MIC_START_TIMEOUT_MS);
+
+      try {
+        recognition.start();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.includes("already started")) return;
+        logger.error("Failed to start recognition", error);
+        failStartup("timeout");
+      }
     };
 
     recognition.onerror = (event) => {
-      if (event.error === "no-speech" || event.error === "aborted") {
-        stopRecognition(recognition);
+      if (!isCurrentRecognitionEffect() || settled) return;
+
+      const hasStarted = startedAttempt === attempt;
+      const startup = recognitionStartupFailure({
+        type: "error",
+        code: event.error,
+        hasStarted,
+      });
+      if (startup) {
+        logger.warn("Speech recognition did not start", { code: event.error });
+        failStartup(startup, startup === "denied" ? "denied" : undefined);
         return;
       }
 
-      if (event.error === "not-allowed") {
-        setBlockingError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
-        logger.warn("Microphone permission not allowed");
+      if (event.error === "no-speech" || event.error === "aborted") {
+        stopRecognition(recognition);
         return;
       }
 
@@ -182,15 +281,32 @@ export default function useListening(
         code: event.error,
         message: event.message,
       });
+      leaveStarting();
       stopRecognition(recognition);
     };
 
     recognition.onstart = () => {
+      if (!isCurrentRecognitionEffect() || settled) return;
+      startedAttempt = attempt;
+      clearStartTimer();
       setIsRecognitionActive(true);
       setIsListening(true);
+      leaveStarting();
     };
 
     recognition.onend = () => {
+      if (!isCurrentRecognitionEffect() || settled) return;
+
+      const endedBeforeStart = recognitionStartupFailure({
+        type: "end",
+        hasStarted: startedAttempt === attempt,
+      });
+      if (endedBeforeStart) {
+        logger.warn("Speech recognition ended before it started");
+        failStartup(endedBeforeStart);
+        return;
+      }
+
       handleRecognitionEnd(
         isCurrentRecognitionEffect(),
         canRestartListening(),
@@ -206,7 +322,7 @@ export default function useListening(
           restartTimeoutRef.current = window.setTimeout(() => {
             restartTimeoutRef.current = null;
             if (isCurrentRecognitionEffect() && canRestartListening()) {
-              startRecognition(recognition);
+              beginRecognition();
             }
           }, RECOGNITION_RESTART_DELAY_MS);
         }
@@ -214,17 +330,21 @@ export default function useListening(
     };
 
     if (shouldListen) {
-      startRecognition(recognition);
+      beginRecognition();
     } else {
       stopRecognition(recognition);
     }
 
     return () => {
+      const abandonStart = armed && startedAttempt !== attempt;
       isMountedRef.current = false;
+      settled = true;
       if (recognitionEffectIdRef.current === effectId) {
         recognitionEffectIdRef.current += 1;
       }
+      if (abandonStart) leaveStarting();
 
+      clearStartTimer();
       if (restartTimeoutRef.current !== null) {
         clearTimeout(restartTimeoutRef.current);
         restartTimeoutRef.current = null;
@@ -242,7 +362,6 @@ export default function useListening(
     shouldListen,
     permissionError,
     handleResult,
-    startRecognition,
     stopRecognition,
     canRestartListening,
   ]);

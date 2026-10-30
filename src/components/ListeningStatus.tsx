@@ -2,6 +2,7 @@ import { Mic, MicOff } from "lucide-react";
 
 interface ListeningStatusProps {
   isListening: boolean;
+  isStarting?: boolean;
 }
 
 /**
@@ -13,15 +14,26 @@ interface ListeningStatusProps {
  * @example
  * <ListeningStatus isListening={true} />
  */
-export default function ListeningStatus({ isListening }: ListeningStatusProps) {
-  const Icon = isListening ? Mic : MicOff;
+export default function ListeningStatus({
+  isListening,
+  isStarting = false,
+}: ListeningStatusProps) {
+  const active = isListening || isStarting;
+  const Icon = active ? Mic : MicOff;
   // Green = actively listening, gray = idle (not an error state)
-  const colorClass = isListening ? "text-green-500" : "text-gray-400";
-  const label = isListening ? "Listening" : "Not listening";
+  const colorClass = isListening
+    ? "text-green-500"
+    : isStarting
+      ? "text-green-300"
+      : "text-gray-400";
+  const label = isStarting ? "Starting…" : isListening ? "Listening" : "Not listening";
 
   return (
-    <div className={`flex items-center text-sm gap-1 ${colorClass}`}>
-      <Icon className={isListening ? "animate-pulse" : undefined} size={16} />
+    <div
+      role="status"
+      className={`flex items-center text-sm gap-1 ${colorClass}`}
+    >
+      <Icon className={active ? "animate-pulse" : undefined} size={16} />
       <span>{label}</span>
     </div>
   );

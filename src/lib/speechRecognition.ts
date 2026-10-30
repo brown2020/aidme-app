@@ -3,7 +3,16 @@
  * Provides singleton pattern for speech recognition instance management
  */
 
+import { MIC_START_TIMEOUT_MS } from "./constants";
 import { logger } from "./logger";
+import {
+  audioInputPresence,
+  classifyMicrophoneFailure,
+  withTimeout,
+  type AudioInputPresence,
+  type MicrophoneAccessResult,
+} from "./microphoneAccess";
+import { validatePermissionStatus, type PermissionStatus } from "./validation";
 
 type SpeechRecognitionConstructor = new () => SpeechRecognition;
 
@@ -91,11 +100,6 @@ export function setIsRecognitionActive(active: boolean): void {
 }
 
 /**
- * Request microphone permission explicitly via getUserMedia
- *
- * @returns Promise resolving to true if permission granted
- */
-/**
  * Reset module state — for tests only.
  */
 export function resetSpeechRecognitionModuleState(): void {
@@ -103,10 +107,54 @@ export function resetSpeechRecognitionModuleState(): void {
   recognitionState = "idle";
 }
 
-export async function requestMicrophonePermission(): Promise<boolean> {
+function stopStream(stream: MediaStream) {
+  stream.getTracks().forEach((track) => track.stop());
+}
+
+async function listedAudioInputs(
+  signalMs: number
+): Promise<AudioInputPresence> {
+  const enumerate = navigator.mediaDevices?.enumerateDevices?.bind(
+    navigator.mediaDevices
+  );
+  if (!enumerate) return "unknown";
+
+  try {
+    const devices = await withTimeout(enumerate(), signalMs);
+    return audioInputPresence(devices);
+  } catch (error) {
+    if (classifyMicrophoneFailure(error) === "timeout") throw error;
+    logger.warn("Could not list audio devices", error);
+    return "unknown";
+  }
+}
+
+async function currentMicPermission(
+  signalMs: number
+): Promise<PermissionStatus | null> {
+  if (!navigator.permissions?.query) return null;
+  try {
+    const result = await withTimeout(
+      navigator.permissions.query({ name: "microphone" as PermissionName }),
+      signalMs
+    );
+    return validatePermissionStatus(result.state);
+  } catch (error) {
+    if (classifyMicrophoneFailure(error) === "timeout") throw error;
+    return null;
+  }
+}
+
+/**
+ * Request microphone permission explicitly via getUserMedia.
+ * Stops the probe stream immediately; speech recognition opens the mic itself.
+ * Returns before calling getUserMedia when no audio input is listed, and gives
+ * up if the probe stays pending — some browsers never reject a missing mic.
+ */
+export async function requestMicrophonePermission(): Promise<MicrophoneAccessResult> {
   if (typeof navigator === "undefined") {
     logger.warn("Navigator not available (SSR context)");
-    return false;
+    return { granted: false, reason: "failed" };
   }
 
   const getUserMedia = navigator.mediaDevices?.getUserMedia?.bind(
@@ -115,16 +163,36 @@ export async function requestMicrophonePermission(): Promise<boolean> {
 
   if (!getUserMedia) {
     logger.warn("getUserMedia not available in this browser");
-    return false;
+    return { granted: false, reason: "failed" };
   }
 
+  const deadline = Date.now() + MIC_START_TIMEOUT_MS;
+  const remaining = () => Math.max(0, deadline - Date.now());
+
   try {
-    const stream = await getUserMedia({ audio: true });
-    stream.getTracks().forEach((track) => track.stop());
+    const permission = await currentMicPermission(remaining());
+    if (permission === "denied") {
+      logger.warn("Microphone permission already denied");
+      return { granted: false, reason: "denied" };
+    }
+
+    const inputs = await listedAudioInputs(remaining());
+    if (inputs === "absent") {
+      logger.warn("No audio input devices");
+      return { granted: false, reason: "unavailable" };
+    }
+
+    const stream = await withTimeout(
+      getUserMedia({ audio: true }),
+      remaining(),
+      stopStream
+    );
+    stopStream(stream);
     logger.info("Microphone permission granted");
-    return true;
+    return { granted: true };
   } catch (error) {
-    logger.error("Microphone permission denied", error);
-    return false;
+    const reason = classifyMicrophoneFailure(error);
+    logger.error("Microphone request failed", { reason, error });
+    return { granted: false, reason };
   }
 }

@@ -12,6 +12,12 @@ export const MAX_TRANSCRIPT_LENGTH = 200;
 /** Delay before restarting speech recognition (ms) */
 export const RECOGNITION_RESTART_DELAY_MS = 250;
 
+/**
+ * How long a microphone probe or speech-recognition start may sit pending.
+ * Some browsers never reject getUserMedia when no input device exists.
+ */
+export const MIC_START_TIMEOUT_MS = 8000;
+
 /** Keyboard shortcut to toggle microphone (Space, when not in a form control) */
 export const MIC_TOGGLE_SHORTCUT_KEY = " ";
 
@@ -70,6 +76,10 @@ export const ERROR_MESSAGES = {
     "Error requesting microphone permission. Please check your browser settings.",
   MIC_NOT_ALLOWED:
     "Microphone access was denied. Please allow microphone access in your browser settings.",
+  MIC_UNAVAILABLE:
+    "No microphone is available. Connect a microphone and try again.",
+  MIC_START_FAILED:
+    "Couldn't start listening. Allow microphone access, or connect a microphone, and try again.",
   NETWORK_ERROR:
     "Speech recognition service unavailable. Please check your internet connection and try again.",
   LANGUAGE_NOT_SUPPORTED:

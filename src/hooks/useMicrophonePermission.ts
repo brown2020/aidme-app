@@ -5,6 +5,10 @@ import {
 } from "@/lib/speechRecognition";
 import { ERROR_MESSAGES } from "@/lib/constants";
 import {
+  errorAfterPermissionQuery,
+  microphoneFailureMessage,
+} from "@/lib/microphoneAccess";
+import {
   validatePermissionStatus,
   type PermissionStatus,
 } from "@/lib/validation";
@@ -48,9 +52,12 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
           if (isCancelled) return;
           const validatedStatus = validatePermissionStatus(result.state);
           setStatus(validatedStatus);
-          if (validatedStatus === "granted") {
-            setError(null);
-          }
+          setError(
+            errorAfterPermissionQuery(
+              validatedStatus,
+              useAppStore.getState().micPermissionError
+            )
+          );
           logger.debug("Permission status synced", { status: validatedStatus });
         })
         .catch((err) => {
@@ -76,16 +83,20 @@ export function useMicrophonePermission(): UseMicrophonePermissionResult {
       return false;
     }
 
-    const granted = await requestMicrophonePermission();
+    const result = await requestMicrophonePermission();
 
-    if (granted) {
+    if (result.granted) {
       setStatus("granted");
       setError(null);
       return true;
     }
 
-    setStatus("denied");
-    setError(ERROR_MESSAGES.MIC_NOT_ALLOWED);
+    if (result.reason === "denied") {
+      setStatus("denied");
+    } else if (useAppStore.getState().micPermissionStatus === "denied") {
+      setStatus("prompt");
+    }
+    setError(microphoneFailureMessage(result.reason));
     return false;
   }, [setStatus, setError]);
 

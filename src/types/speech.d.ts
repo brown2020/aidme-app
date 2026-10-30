@@ -46,6 +46,7 @@ interface SpeechRecognition extends EventTarget {
   onsoundend: () => void;
   start(): void;
   stop(): void;
+  abort(): void;
 }
 
 interface SpeechRecognitionErrorEvent extends Event {
