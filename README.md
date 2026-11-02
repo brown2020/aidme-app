@@ -40,9 +40,9 @@ There is no custom backend: the browser talks to Firebase directly, and `firesto
 | Images | Sharp |
 | Speech | Browser Web Speech API |
 | Accounts / data | Firebase 13 (Auth, Firestore, Analytics) |
-| Tests | Vitest 4 + jsdom; Firestore rules via emulator |
+| Tests | Vitest 5 + jsdom; Firestore rules via emulator |
 | Lint | ESLint 10 + eslint-config-next |
-| Node | `22.x` (`engines` in package.json) |
+| Node | `24.x` (`engines` in package.json) |
 
 `.npmrc` sets `legacy-peer-deps=true`. Security headers (frame deny, nosniff, referrer, microphone Permissions-Policy) are set in `next.config.js`.
 
@@ -71,7 +71,7 @@ aidme-app/
 
 ### Prerequisites
 
-- Node.js **22.x**
+- Node.js **24.x**
 - npm 10+
 - A Chromium-based browser or Safari with Web Speech API support (and a microphone)
 

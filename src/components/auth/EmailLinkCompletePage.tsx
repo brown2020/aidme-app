@@ -42,25 +42,36 @@ export default function EmailLinkCompletePage() {
 
   useEffect(() => {
     // The link is single-use, so only attempt it once per page load.
+    // The URL and saved email live outside React. Defer the state update so
+    // the first paint stays on "checking" (matching SSR) and the hooks rule
+    // does not treat this as a synchronous setState cascade.
     if (startedRef.current) return;
     startedRef.current = true;
-    let isLink = false;
-    try {
-      isLink = isEmailSignInLink(window.location.href);
-    } catch {
-      isLink = false;
-    }
-    if (!isLink) {
-      setError(AUTH_ERROR_MESSAGES.LINK_INVALID);
-      setStep("failed");
-      return;
-    }
-    const savedEmail = window.localStorage.getItem(EMAIL_FOR_SIGN_IN_KEY);
-    if (savedEmail) {
-      void finish(savedEmail);
-    } else {
-      setStep("needEmail");
-    }
+    let cancelled = false;
+    const id = window.setTimeout(() => {
+      if (cancelled) return;
+      let isLink = false;
+      try {
+        isLink = isEmailSignInLink(window.location.href);
+      } catch {
+        isLink = false;
+      }
+      if (!isLink) {
+        setError(AUTH_ERROR_MESSAGES.LINK_INVALID);
+        setStep("failed");
+        return;
+      }
+      const savedEmail = window.localStorage.getItem(EMAIL_FOR_SIGN_IN_KEY);
+      if (savedEmail) {
+        void finish(savedEmail);
+      } else {
+        setStep("needEmail");
+      }
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(id);
+    };
   }, [finish]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {

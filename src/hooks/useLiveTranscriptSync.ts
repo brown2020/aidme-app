@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { createThrottledLatest } from "@/lib/throttledLatest";
 import { INTERIM_SYNC_INTERVAL_MS, LIVE_SESSION_MESSAGES } from "@/lib/constants";
@@ -35,6 +35,9 @@ export function useLiveTranscriptSync(isListening: boolean): LiveTranscriptSync 
   const uid = useAuthStore((s) => s.user?.uid ?? null);
   const sessionId = uid ? activeSessionId : null;
   const hasWarnedRef = useRef(false);
+  const interimWriterRef = useRef<ReturnType<typeof createThrottledLatest<string>> | null>(
+    null
+  );
 
   const reportFailure = useCallback((error: unknown) => {
     reportOperationalEvent("live_write_failed", error);
@@ -43,46 +46,50 @@ export function useLiveTranscriptSync(isListening: boolean): LiveTranscriptSync 
     toast.error(LIVE_SESSION_MESSAGES.WRITE_FAILED);
   }, []);
 
-  const interimWriter = useMemo(
-    () =>
-      sessionId
-        ? createThrottledLatest((text: string) => {
-            const seq = nextSeq();
-            loadLiveSessions()
-              .then(({ setInterimText }) => setInterimText(sessionId, text, seq))
-              .catch(reportFailure);
-          }, INTERIM_SYNC_INTERVAL_MS)
-        : null,
-    [sessionId, reportFailure]
-  );
-
+  // Build the throttled writer in an effect. Creating it during render
+  // hands a ref-reading callback to createThrottledLatest, which the
+  // react-hooks/refs rule rejects.
   useEffect(() => {
     hasWarnedRef.current = false;
-    return () => interimWriter?.cancel();
-  }, [interimWriter]);
+    if (!sessionId) {
+      interimWriterRef.current = null;
+      return;
+    }
+    const writer = createThrottledLatest((text: string) => {
+      const seq = nextSeq();
+      loadLiveSessions()
+        .then(({ setInterimText }) => setInterimText(sessionId, text, seq))
+        .catch(reportFailure);
+    }, INTERIM_SYNC_INTERVAL_MS);
+    interimWriterRef.current = writer;
+    return () => {
+      writer.cancel();
+      if (interimWriterRef.current === writer) interimWriterRef.current = null;
+    };
+  }, [sessionId, reportFailure]);
 
   // Clear viewers' in-progress line when the mic stops mid-sentence.
   useEffect(() => {
-    if (isListening || !sessionId || !interimWriter) return;
-    interimWriter.cancel();
+    if (isListening || !sessionId) return;
+    interimWriterRef.current?.cancel();
     const seq = nextSeq();
     loadLiveSessions()
       .then(({ setInterimText }) => setInterimText(sessionId, "", seq))
       .catch((error: unknown) => reportOperationalEvent("interim_clear_failed", error));
-  }, [isListening, sessionId, interimWriter]);
+  }, [isListening, sessionId]);
 
-  const onInterim = useCallback((text: string) => interimWriter?.push(text), [interimWriter]);
+  const onInterim = useCallback((text: string) => interimWriterRef.current?.push(text), []);
 
   const onFinalSentence = useCallback(
     (text: string) => {
       if (!sessionId) return;
-      interimWriter?.cancel();
+      interimWriterRef.current?.cancel();
       const seq = nextSeq();
       loadLiveSessions()
         .then(({ appendTranscriptLine }) => appendTranscriptLine(sessionId, text, seq))
         .catch(reportFailure);
     },
-    [sessionId, interimWriter, reportFailure]
+    [sessionId, reportFailure]
   );
 
   return { onFinalSentence, onInterim };

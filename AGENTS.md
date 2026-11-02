@@ -26,7 +26,7 @@ Help people who are deaf or hard of hearing (and anyone who needs captions) foll
 | Toasts | Sonner |
 | Icons | lucide-react |
 | Lint | ESLint 10 flat config (`eslint.config.mjs`) |
-| Runtime | Node **22.x** (`engines` in `package.json`) |
+| Runtime | Node **24.x** (`engines` in `package.json`) |
 | Package manager | **npm** (`package-lock.json` only—do not switch) |
 
 ## Repository structure
@@ -132,7 +132,7 @@ All logic runs in the browser after static/SSR shell delivery:
 ## Important commands
 
 ```bash
-npm install          # Install dependencies (Node 22.x)
+npm install          # Install dependencies (Node 24.x)
 npm run dev          # Dev server http://localhost:3000
 npm run build        # Production build + TypeScript check (Next)
 npm run start        # Serve production build
@@ -155,7 +155,7 @@ Copy `.env.example` to `.env.local`. All values are public Firebase web config (
 npm run lint && npm run typecheck && npm run test:ci && npm run test:rules && npm run build && npm run test:e2e
 ```
 
-There is **no** standalone `typecheck` script. `npm run build` is the TypeScript gate.
+`npm run typecheck` is `tsc --noEmit`. `npm run build` also typechecks.
 
 ### Non-interactive testing rules
 

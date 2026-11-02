@@ -146,7 +146,7 @@ Composite index: `ownerUid ASC, createdAt DESC` (`firestore.indexes.json`). The 
 - Requires browser with `SpeechRecognition` / `webkitSpeechRecognition`
 - HTTPS (or localhost) typically required for microphone **(inferred from platform norms)**
 - Recognition quality and cloud vs on-device processing depend on **browser vendor**, not Aid.me
-- Node 22.x enforced via `engines`
+- Node 24.x enforced via `engines`
 
 ### Known limitations
 
