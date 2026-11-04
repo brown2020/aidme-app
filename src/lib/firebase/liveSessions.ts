@@ -135,8 +135,13 @@ export async function migrateLegacySession(sessionId: string, legacyKeys: string
         emailKeys: paired.emailKeys,
         updatedAt: serverTimestamp(),
       });
-      for (const key of paired.emailKeys) {
-        const existing = await getDoc(memberRef(sessionId, key));
+      const existingMembers = await Promise.all(
+        paired.emailKeys.map(async (key) => ({
+          key,
+          existing: await getDoc(memberRef(sessionId, key)),
+        }))
+      );
+      for (const { key, existing } of existingMembers) {
         if (!existing.exists()) {
           batch.set(memberRef(sessionId, key), { emailKey: key, uid: "" });
           batch.set(inboxRef(key, sessionId), { createdAt: serverTimestamp() });
@@ -195,8 +200,10 @@ export async function createLiveSession(
 
 export async function updateSessionViewers(sessionId: string, viewerEmails: string[]): Promise<void> {
   const db = getDb();
-  const keys = await emailKeys(viewerEmails);
-  const existing = await getDocs(collection(db, SESSIONS, sessionId, MEMBERS));
+  const [keys, existing] = await Promise.all([
+    emailKeys(viewerEmails),
+    getDocs(collection(db, SESSIONS, sessionId, MEMBERS)),
+  ]);
   const pending = new Set(keys);
   const batch = writeBatch(db);
   batch.set(invitesRef(sessionId), {
@@ -254,8 +261,10 @@ export async function claimSessionAccess(sessionId: string, uid: string, email: 
 /** Removes this account's membership, inbox entry, and uid binding. */
 export async function leaveSession(sessionId: string, email: string, uid: string): Promise<void> {
   const db = getDb();
-  const key = await emailKey(email);
-  const accountSnap = await getDoc(accountSessionRef(uid, sessionId));
+  const [key, accountSnap] = await Promise.all([
+    emailKey(email),
+    getDoc(accountSessionRef(uid, sessionId)),
+  ]);
   const boundKey =
     accountSnap.exists() && typeof accountSnap.data().emailKey === "string"
       ? accountSnap.data().emailKey

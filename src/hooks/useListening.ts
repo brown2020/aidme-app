@@ -21,6 +21,11 @@ import {
 import { useAppStore } from "@/zustand/useAppStore";
 import type { PermissionStatus } from "@/lib/validation";
 
+/** Deadline for recognition to fire `onstart` after `recognition.start()`. */
+function scheduleMicStartTimeout(onTimeout: () => void): number {
+  return window.setTimeout(onTimeout, MIC_START_TIMEOUT_MS);
+}
+
 interface UseListeningResult {
   transcript: string[];
   interimTranscript: string;
@@ -222,7 +227,7 @@ export default function useListening(
       armed = true;
       const id = ++attempt;
       clearStartTimer();
-      startTimer = window.setTimeout(() => {
+      startTimer = scheduleMicStartTimeout(() => {
         startTimer = null;
         if (startedAttempt === id) return;
         const reason = recognitionStartupFailure({
@@ -230,7 +235,7 @@ export default function useListening(
           hasStarted: false,
         });
         if (reason) failStartup(reason);
-      }, MIC_START_TIMEOUT_MS);
+      });
 
       try {
         recognition.start();
